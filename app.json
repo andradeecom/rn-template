@@ -34,6 +34,15 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["en", "es", "pt"],
+            "android": ["en", "es", "pt"]
+          }
+        }
       ]
     ],
     "experiments": {
