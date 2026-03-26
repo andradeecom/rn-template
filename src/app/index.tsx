@@ -1,18 +1,16 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getLocales } from 'expo-localization';
-import { i18n, translate } from '@/i18n';
+import { translate } from '@/i18n';
 
 import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-i18n.locale = getLocales()[0]?.languageTag || 'en';
-i18n.enableFallback = true;
+import { MaxContentWidth, Spacing } from '@/constants/theme';
+import Toast from 'react-native-toast-message';
+import { StyleSheet } from 'react-native-unistyles';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -34,6 +32,14 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const showToast = () => {
+    Toast.show({
+      type: 'success',
+      text1: 'Hello',
+      text2: 'This is some something 👋',
+    });
+  };
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -54,24 +60,27 @@ export default function HomeScreen() {
           <HintRow title="Fresh start" hint={<ThemedText type="code">npm run reset-project</ThemedText>} />
         </ThemedView>
 
+        <ThemedText onPress={showToast}>Show toast</ThemedText>
+
         {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
     </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme, runtime) => ({
   container: {
     flex: 1,
     justifyContent: 'center',
     flexDirection: 'row',
+    backgroundColor: theme.colors.secondary,
   },
   safeArea: {
     flex: 1,
     paddingHorizontal: Spacing.four,
     alignItems: 'center',
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
+    paddingBottom: runtime.insets.bottom + Spacing.three,
     maxWidth: MaxContentWidth,
   },
   heroSection: {
@@ -94,4 +103,4 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
     borderRadius: Spacing.four,
   },
-});
+}));

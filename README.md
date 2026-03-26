@@ -4,14 +4,18 @@ This is a React Native template with Expo and TypeScript.
 
 ## Features
 
-- Expo
-- TypeScript
-- ESLint
-- Prettier
-- Husky
-- Lint-staged
-- i18n-js
-- Unistyles
-- RevenueCat
-- Zustand (State Management)
-- Supabase (Auth and Database)
+- [x] Expo
+- [x] TypeScript
+- [x] ESLint
+- [x] Prettier
+- [x] Husky
+- [x] Lint-staged
+- [x] React Compiler
+- [x] ESLint React Compiler
+- [x] i18n-js
+- [x] Toast
+- [x] Unistyles
+- [ ] Notifications (Expo Push Notifications)
+- [ ] Zustand (State Management)
+- [ ] Supabase (Auth and Database) or Proprietary backend API.
+- [ ] RevenueCat

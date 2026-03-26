@@ -8,7 +8,18 @@
     "scheme": "rntemplate",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "CFBundleLocalizations": [
+          "en",
+          "es",
+          "pt",
+          "en",
+          "es",
+          "pt"
+        ]
+      },
+      "bundleIdentifier": "com.wheelhub.rntemplate"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +28,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.wheelhub.rntemplate"
     },
     "web": {
       "output": "static",
@@ -39,8 +51,16 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": ["en", "es", "pt"],
-            "android": ["en", "es", "pt"]
+            "ios": [
+              "en",
+              "es",
+              "pt"
+            ],
+            "android": [
+              "en",
+              "es",
+              "pt"
+            ]
           }
         }
       ]
