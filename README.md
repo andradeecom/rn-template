@@ -15,7 +15,15 @@ This is a React Native template with Expo and TypeScript.
 - [x] i18n-js
 - [x] Toast
 - [x] Unistyles
+- [x] Tanstack Query
+- [x] Zustand (State Management)
+- [x] Zod (Validation)
+- [x] React Hook Form (Form handling)
+- [x] Proprietary backend API handling
+- [ ] Supabase (Auth and Database) handling
 - [ ] Notifications (Expo Push Notifications)
-- [ ] Zustand (State Management)
-- [ ] Supabase (Auth and Database) or Proprietary backend API.
 - [ ] RevenueCat
+
+---
+
+<!-- TODO (Backend): Setup Social Login (Google, Apple) -->
