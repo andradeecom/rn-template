@@ -10,16 +10,9 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "CFBundleLocalizations": [
-          "en",
-          "es",
-          "pt",
-          "en",
-          "es",
-          "pt"
-        ]
+        "CFBundleLocalizations": ["en", "es", "pt", "en", "es", "pt"]
       },
-      "bundleIdentifier": "com.wheelhub.rntemplate"
+      "bundleIdentifier": "com.andradee.rntemplate"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +22,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.wheelhub.rntemplate"
+      "package": "com.andradee.rntemplate"
     },
     "web": {
       "output": "static",
@@ -51,20 +44,18 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": [
-              "en",
-              "es",
-              "pt"
-            ],
-            "android": [
-              "en",
-              "es",
-              "pt"
-            ]
+            "ios": ["en", "es", "pt"],
+            "android": ["en", "es", "pt"]
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.397336416856-dosvk0v405lhmucnd3ietr86lravpj61"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

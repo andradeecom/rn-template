@@ -14,7 +14,12 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <ProfileCard name={fullName} email={user?.email ?? ''} onLogout={logout} />
+        <ProfileCard
+          name={fullName}
+          email={user?.email ?? ''}
+          avatar={user?.profileImageUrl ?? undefined}
+          onLogout={logout}
+        />
       </ScrollView>
     </SafeAreaView>
   );

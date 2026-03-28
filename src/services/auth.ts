@@ -1,9 +1,14 @@
 import { apiClient } from '@/lib/api-client';
-import type { LoginRequest, LoginResponse, RefreshResponse, User } from '@/types/auth';
+import type { LoginRequest, GoogleLoginRequest, LoginResponse, RefreshResponse, User } from '@/types/auth';
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const { data } = await apiClient.post<LoginResponse>('/auth/login', credentials);
+    return data;
+  },
+
+  googleLogin: async (request: GoogleLoginRequest): Promise<LoginResponse> => {
+    const { data } = await apiClient.post<LoginResponse>('/auth/google/token', request);
     return data;
   },
 

@@ -2,12 +2,13 @@ import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 import { LoginCard, LoginFooter } from '@/components/organisms';
-import { useLogin } from '@/hooks/use-auth';
+import { useLogin, useGoogleLogin } from '@/hooks/use-auth';
 import { translate } from '@/i18n';
 import Toast from 'react-native-toast-message';
 
 export default function LoginScreen() {
   const loginMutation = useLogin();
+  const googleLoginMutation = useGoogleLogin();
 
   const handleLogin = (email: string, password: string) => {
     loginMutation.mutate(
@@ -25,7 +26,19 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = () => {
-    // TODO: Implement Google OAuth
+    googleLoginMutation.mutate(undefined, {
+      onError: (error) => {
+        if (error instanceof Error && error.message === 'Google sign-in was cancelled') {
+          return;
+        }
+        console.log('Google login error:', error);
+        Toast.show({
+          type: 'error',
+          text1: translate('errors.loginFailed'),
+          text2: error instanceof Error ? error.message : translate('errors.invalidCredentials'),
+        });
+      },
+    });
   };
 
   const handleAppleLogin = () => {

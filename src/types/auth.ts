@@ -6,12 +6,17 @@ export type User = {
   firstName: string;
   lastName: string;
   role: UserRole;
+  profileImageUrl?: string | null;
   mustChangePassword: boolean;
 };
 
 export type LoginRequest = {
   email: string;
   password: string;
+};
+
+export type GoogleLoginRequest = {
+  idToken: string;
 };
 
 export type LoginResponse = {
