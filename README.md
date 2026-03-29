@@ -25,6 +25,3 @@ This is a React Native template with Expo and TypeScript.
 - [ ] RevenueCat
 
 ---
-
-<!-- TODO (Backend): Setup Social Login (Google, Apple) -->
-<!-- TODO (RN): Create an adapter for using proprietary API or Supabase (interface adapter). Same for persistent storage (SecureStore, AsyncStorage,etc) -->

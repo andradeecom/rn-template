@@ -2,11 +2,15 @@
   "name": "rn-template",
   "main": "src/index.ts",
   "version": "0.1.0",
+  "description": "This is a React Native template with Expo and TypeScript.",
   "author": {
     "name": "Eduardo Andrade",
     "email": "eduardo@andradee.com"
   },
-  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">= 24.14.0"
+  },
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
