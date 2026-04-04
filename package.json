@@ -20,7 +20,8 @@
     "lint": "expo lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
     "prepare": "husky",
-    "update:deps": "expo install --check"
+    "update:deps": "expo install --check",
+    "clean-install": "sh ./scripts/clean-and-reinstall.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
