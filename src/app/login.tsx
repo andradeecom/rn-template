@@ -1,14 +1,16 @@
-import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleSheet } from 'react-native-unistyles';
+import { Button } from '@/components/atoms';
 import { LoginCard, LoginFooter } from '@/components/organisms';
-import { useLogin, useGoogleLogin } from '@/hooks/use-auth';
+import { useGoogleLogin, useLogin, useMockLogin } from '@/hooks/use-auth';
 import { translate } from '@/i18n';
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { StyleSheet } from 'react-native-unistyles';
 
 export default function LoginScreen() {
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
+  const mockLogin = useMockLogin();
 
   const handleLogin = (email: string, password: string) => {
     loginMutation.mutate(
@@ -56,6 +58,16 @@ export default function LoginScreen() {
             isLoading={loginMutation.isPending}
           />
           <LoginFooter />
+          {__DEV__ && (
+            <Button
+              label="[DEV] Skip login with mock user"
+              variant="ghost"
+              size="sm"
+              fullWidth
+              onPress={mockLogin}
+              style={styles.devButton}
+            />
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -75,5 +87,8 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: 'center',
     paddingHorizontal: theme.spacing[5],
     paddingVertical: theme.spacing[6],
+  },
+  devButton: {
+    marginTop: theme.spacing[4],
   },
 }));

@@ -1,11 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
+import { removeAccessToken, setAccessToken } from '@/lib/secure-store';
+import { removeStoredUser, setStoredUser } from '@/lib/user-storage';
 import { authApi } from '@/services/auth';
 import { useAuthStore } from '@/stores/auth';
-import { setAccessToken, removeAccessToken } from '@/lib/secure-store';
-import { setStoredUser, removeStoredUser } from '@/lib/user-storage';
-import NitroCookies from 'react-native-nitro-cookies';
 import type { LoginRequest } from '@/types/auth';
+import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import NitroCookies from 'react-native-nitro-cookies';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
@@ -68,6 +68,27 @@ export function useMe() {
     queryFn: authApi.me,
     enabled: isAuthenticated,
   });
+}
+
+export function useMockLogin() {
+  const queryClient = useQueryClient();
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  return async () => {
+    const mockUser: import('@/types/auth').User = {
+      id: 'mock-user-id',
+      email: 'mock@example.com',
+      firstName: 'Mock',
+      lastName: 'User',
+      role: 'admin',
+      profileImageUrl: null,
+      mustChangePassword: false,
+    };
+    await setAccessToken('mock-access-token');
+    await setStoredUser(mockUser);
+    setAuth(mockUser);
+    queryClient.setQueryData(authKeys.me, mockUser);
+  };
 }
 
 export function useLogout() {
