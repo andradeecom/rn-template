@@ -41,7 +41,8 @@ jobs:
       - name: Bump package.json version
         id: bump
         run: |
-          NEW_VERSION=$(pnpm version ${{ inputs.bump }} --no-git-tag-version)
+          pnpm version ${{ inputs.bump }} --no-git-tag-version
+          NEW_VERSION="v$(node -p "require('./package.json').version")"
           echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Sync version to app.json
