@@ -2,9 +2,19 @@ import { removeAccessToken, setAccessToken } from '@/lib/secure-store';
 import { removeStoredUser, setStoredUser } from '@/lib/user-storage';
 import { authApi } from '@/services/auth';
 import { useAuthStore } from '@/stores/auth';
-import type { LoginRequest } from '@/types/auth';
+import type {
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResendVerificationRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
+} from '@/types/auth';
 import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
 import NitroCookies from 'react-native-nitro-cookies';
 
 GoogleSignin.configure({
@@ -15,6 +25,46 @@ GoogleSignin.configure({
 export const authKeys = {
   me: ['auth', 'me'] as const,
 };
+
+/**
+ * Restores the persisted session once on launch. Returns whether hydration has
+ * finished so the root navigator can hold the UI until the answer is known —
+ * rendering before then would flash the login screen at a signed-in user.
+ */
+export function useHydrate() {
+  const hydrate = useAuthStore((s) => s.hydrate);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  return isHydrated;
+}
+
+/**
+ * Keeps the current route and the auth state in sync. Keys off the `(auth)`
+ * group rather than `(tabs)` so the cold-start case is covered too: there is no
+ * `app/index.tsx`, so on launch no route has resolved yet.
+ */
+export function useAuthGuard() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const inAuthGroup = (segments[0] as string) === '(auth)';
+
+    if (!isAuthenticated && !inAuthGroup) {
+      router.replace('/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, isHydrated, segments, router]);
+}
 
 export function useLogin() {
   const queryClient = useQueryClient();
@@ -27,6 +77,64 @@ export function useLogin() {
       await setStoredUser(data.user);
       setAuth(data.user);
       queryClient.setQueryData(authKeys.me, data.user);
+    },
+  });
+}
+
+/**
+ * The password/verification mutations below deliberately do not write to the
+ * auth store or query cache: none of these endpoints return a session. The user
+ * still has to log in afterwards.
+ */
+export function useRegister() {
+  return useMutation({
+    mutationFn: (payload: RegisterRequest) => authApi.register(payload),
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (payload: ForgotPasswordRequest) => authApi.forgotPassword(payload),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (payload: ResetPasswordRequest) => authApi.resetPassword(payload),
+  });
+}
+
+export function useVerifyEmail() {
+  return useMutation({
+    mutationFn: (payload: VerifyEmailRequest) => authApi.verifyEmail(payload),
+  });
+}
+
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: (payload: ResendVerificationRequest) => authApi.resendVerification(payload),
+  });
+}
+
+/**
+ * Unlike the flows above, this one runs while signed in. The backend clears
+ * `mustChangePassword` on success, so the stored/cached user is refreshed to
+ * match — otherwise a forced-change user would keep being prompted.
+ */
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  return useMutation({
+    mutationFn: (payload: ChangePasswordRequest) => authApi.changePassword(payload),
+    onSuccess: async () => {
+      if (!user?.mustChangePassword) return;
+
+      const updated = { ...user, mustChangePassword: false };
+      await setStoredUser(updated);
+      setAuth(updated);
+      queryClient.setQueryData(authKeys.me, updated);
     },
   });
 }
