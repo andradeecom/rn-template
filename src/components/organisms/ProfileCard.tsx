@@ -1,5 +1,6 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text, Avatar, Button } from '@/components/atoms';
 import { translate } from '@/i18n';
 
@@ -8,9 +9,10 @@ type ProfileCardProps = {
   email: string;
   avatar?: string;
   onLogout: () => void;
+  onChangePassword: () => void;
 };
 
-export function ProfileCard({ name, email, avatar, onLogout }: ProfileCardProps) {
+export function ProfileCard({ name, email, avatar, onLogout, onChangePassword }: ProfileCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.info}>
@@ -42,6 +44,15 @@ export function ProfileCard({ name, email, avatar, onLogout }: ProfileCardProps)
             {translate('profile.notificationsEnabled')}
           </Text>
         </View>
+        <View style={styles.separator} />
+        <Pressable
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          onPress={onChangePassword}
+          accessibilityRole="button"
+        >
+          <Text variant="label">{translate('profile.changePassword')}</Text>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={styles.chevron.color} />
+        </Pressable>
       </View>
 
       <Button label={translate('common.signOut')} variant="outline" fullWidth onPress={onLogout} />
@@ -72,8 +83,14 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: 'center',
     paddingVertical: theme.spacing[2],
   },
+  rowPressed: {
+    opacity: 0.6,
+  },
   separator: {
     height: 1,
     backgroundColor: theme.colors.border,
+  },
+  chevron: {
+    color: theme.colors.mutedForeground,
   },
 }));
