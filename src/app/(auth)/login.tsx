@@ -1,13 +1,15 @@
-import { Button } from '@/components/atoms';
+import { Button, Text } from '@/components/atoms';
+import { AuthScreenLayout } from '@/components/molecules';
 import { LoginCard, LoginFooter } from '@/components/organisms';
 import { useGoogleLogin, useLogin, useMockLogin } from '@/hooks/use-auth';
 import { translate } from '@/i18n';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { StyleSheet } from 'react-native-unistyles';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
   const mockLogin = useMockLogin();
@@ -48,45 +50,46 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <LoginCard
-            onLogin={handleLogin}
-            onLoginWithGoogle={handleGoogleLogin}
-            onLoginWithApple={handleAppleLogin}
-            isLoading={loginMutation.isPending}
-          />
-          <LoginFooter />
-          {__DEV__ && (
-            <Button
-              label="[DEV] Skip login with mock user"
-              variant="ghost"
-              size="sm"
-              fullWidth
-              onPress={mockLogin}
-              style={styles.devButton}
-            />
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <AuthScreenLayout>
+      <LoginCard
+        onLogin={handleLogin}
+        onLoginWithGoogle={handleGoogleLogin}
+        onLoginWithApple={handleAppleLogin}
+        onForgotPassword={() => router.push('/forgot-password')}
+        isLoading={loginMutation.isPending}
+      />
+
+      <View style={styles.signUpRow}>
+        <Text variant="bodySmall" color="mutedForeground">
+          {translate('login.noAccount')}
+        </Text>
+        <Text variant="bodySmall" color="primary" onPress={() => router.push('/register')}>
+          {translate('login.signUp')}
+        </Text>
+      </View>
+
+      <LoginFooter />
+
+      {__DEV__ && (
+        <Button
+          label="[DEV] Skip login with mock user"
+          variant="ghost"
+          size="sm"
+          fullWidth
+          onPress={mockLogin}
+          style={styles.devButton}
+        />
+      )}
+    </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  safe: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  keyboard: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 1,
+  signUpRow: {
+    flexDirection: 'row',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing[5],
-    paddingVertical: theme.spacing[6],
+    gap: theme.spacing[2],
+    paddingTop: theme.spacing[5],
   },
   devButton: {
     marginTop: theme.spacing[4],
