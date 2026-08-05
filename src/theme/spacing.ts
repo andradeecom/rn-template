@@ -19,6 +19,9 @@ export const spacing = {
   16: 64,
   20: 80,
   24: 96,
+  28: 112,
+  32: 128,
+  36: 144,
 } as const;
 
 export const gap = (v: number) => v * 8;
