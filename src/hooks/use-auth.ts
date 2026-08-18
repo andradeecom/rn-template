@@ -1,5 +1,5 @@
-import { removeAccessToken, setAccessToken } from '@/lib/secure-store';
-import { removeStoredUser, setStoredUser } from '@/lib/user-storage';
+import { clearLocalSession } from '@/lib/api-client';
+import { setStoredUser } from '@/lib/user-storage';
 import { authApi } from '@/services/auth';
 import { useAuthStore } from '@/stores/auth';
 import type {
@@ -15,7 +15,6 @@ import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/goo
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import NitroCookies from 'react-native-nitro-cookies';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
@@ -73,7 +72,8 @@ export function useLogin() {
   return useMutation({
     mutationFn: (credentials: LoginRequest) => authApi.login(credentials),
     onSuccess: async (data) => {
-      await setAccessToken(data.accessToken);
+      // The session id arrived as a Set-Cookie header and was written to the
+      // keystore by the response interceptor — there is no token in `data`.
       await setStoredUser(data.user);
       setAuth(data.user);
       queryClient.setQueryData(authKeys.me, data.user);
@@ -160,7 +160,6 @@ export function useGoogleLogin() {
       return authApi.googleLogin({ idToken });
     },
     onSuccess: async (data) => {
-      await setAccessToken(data.accessToken);
       await setStoredUser(data.user);
       setAuth(data.user);
       queryClient.setQueryData(authKeys.me, data.user);
@@ -192,21 +191,50 @@ export function useMockLogin() {
       profileImageUrl: null,
       mustChangePassword: false,
     };
-    await setAccessToken('mock-access-token');
     await setStoredUser(mockUser);
     setAuth(mockUser);
     queryClient.setQueryData(authKeys.me, mockUser);
   };
 }
 
+/**
+ * Logs out server-side first, then locally.
+ *
+ * Clearing only the device would leave the session row alive and the id usable
+ * by anyone who captured it. Deleting the row is what makes logout mean
+ * something. The local clear runs regardless, so a failed network call still
+ * signs the user out on this device.
+ */
 export function useLogout() {
   const queryClient = useQueryClient();
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   return async () => {
-    await removeAccessToken();
-    await removeStoredUser();
-    await NitroCookies.clearAll();
+    try {
+      await authApi.logout();
+    } catch {
+      // Offline or server unreachable — the local session still goes.
+    }
+
+    await clearLocalSession();
+    clearAuth();
+    queryClient.clear();
+  };
+}
+
+/** Signs the user out of every device by deleting all their session rows. */
+export function useLogoutAll() {
+  const queryClient = useQueryClient();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+
+  return async () => {
+    try {
+      await authApi.logoutAll();
+    } catch {
+      // Fall through to the local clear.
+    }
+
+    await clearLocalSession();
     clearAuth();
     queryClient.clear();
   };
