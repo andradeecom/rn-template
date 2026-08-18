@@ -1,4 +1,5 @@
 .expo
 node_modules
 out
-build   
+build
+expo-env.d.ts

@@ -41,6 +41,7 @@ regenerate them after changing native settings.
 | `pnpm web` | Run in the browser |
 | `pnpm prebuild` | Regenerate `ios/` and `android/` from `app.json` |
 | `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm test` / `test:watch` | Jest (jest-expo preset) |
 | `pnpm lint` / `pnpm format` | Expo ESLint / Prettier |
 | `pnpm clean-project` | Clear iOS build, Pods, Metro and Xcode DerivedData caches |
 | `pnpm expo:check:deps` / `expo:update:deps` | Verify or fix Expo SDK dependency versions |
@@ -117,6 +118,26 @@ mutation and navigation.
 - [ ] Notifications (Expo Push Notifications)
 - [ ] RevenueCat
 
+## Testing
+
+```bash
+pnpm test         # once
+pnpm test:watch   # watch mode
+```
+
+Jest with the `jest-expo` preset, which mocks the native half of the Expo SDK.
+Specs live in `__specs__/` folders beside the code they cover.
+
+They target the logic where a mistake is expensive and invisible: that rotated
+session ids are captured correctly from `set-cookie` — missing one presents a
+revoked id and the server kills the whole session family — that the credential
+is stored in SecureStore under `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` rather than
+somewhere it could leave the device, and that hydration never reports a session
+as authenticated unless both the id and the stored user are present.
+
+Native modules with no Node equivalent (`expo-secure-store`, AsyncStorage,
+`react-native-nitro-cookies`) are mocked once in `src/__specs__/setup.ts`.
+
 ## Releasing
 
 The **Bump Version** GitHub Action (`workflow_dispatch`) bumps `package.json`,
@@ -163,8 +184,12 @@ is needed and call out anything that alters behaviour for existing clients.
 
 ```bash
 pnpm lint
+pnpm test
 pnpm typecheck
 ```
+
+Every PR runs these in CI (`.github/workflows/ci.yml`), and `main` will not
+accept a merge until that check passes.
 
 ## License
 
