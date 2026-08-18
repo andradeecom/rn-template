@@ -69,11 +69,11 @@ export type GoogleLoginRequest = {
   idToken: string;
 };
 
+/**
+ * Login returns the profile only. The credential is an opaque session id
+ * delivered as a `Set-Cookie` header, captured by the api client and written to
+ * the OS keystore — deliberately never a field in the response body.
+ */
 export type LoginResponse = {
-  accessToken: string;
   user: User;
-};
-
-export type RefreshResponse = {
-  accessToken: string;
 };

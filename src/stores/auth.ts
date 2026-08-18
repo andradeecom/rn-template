@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { User } from '@/types/auth';
-import { getAccessToken } from '@/lib/secure-store';
+import { getSessionId } from '@/lib/secure-store';
 import { getStoredUser } from '@/lib/user-storage';
 
 type AuthState = {
@@ -26,8 +26,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   hydrate: async () => {
-    const [token, user] = await Promise.all([getAccessToken(), getStoredUser()]);
-    if (token && user) {
+    // A stored session id is only a hint that a session *may* still be live —
+    // it is opaque, so only the server can confirm it. `useMe` revalidates on
+    // mount and the api client clears everything on a 401.
+    const [sessionId, user] = await Promise.all([getSessionId(), getStoredUser()]);
+    if (sessionId && user) {
       set({ user, isAuthenticated: true, isHydrated: true });
     } else {
       set({ isHydrated: true });

@@ -3,7 +3,6 @@ import type {
   LoginRequest,
   GoogleLoginRequest,
   LoginResponse,
-  RefreshResponse,
   RegisterRequest,
   RegisterResponse,
   ForgotPasswordRequest,
@@ -61,8 +60,13 @@ export const authApi = {
     return data;
   },
 
-  refresh: async (): Promise<RefreshResponse> => {
-    const { data } = await apiClient.post<RefreshResponse>('/auth/refresh');
+  logout: async (): Promise<MessageResponse> => {
+    const { data } = await apiClient.post<MessageResponse>('/auth/logout');
+    return data;
+  },
+
+  logoutAll: async (): Promise<MessageResponse> => {
+    const { data } = await apiClient.post<MessageResponse>('/auth/logout-all');
     return data;
   },
 };
