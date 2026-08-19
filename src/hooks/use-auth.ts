@@ -2,6 +2,7 @@ import { clearLocalSession } from '@/lib/api-client';
 import { setStoredUser } from '@/lib/user-storage';
 import { authApi } from '@/services/auth';
 import { useAuthStore } from '@/stores/auth';
+import { useLocaleStore } from '@/stores/locale';
 import type {
   ChangePasswordRequest,
   ForgotPasswordRequest,
@@ -33,12 +34,17 @@ export const authKeys = {
 export function useHydrate() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const isHydrated = useAuthStore((s) => s.isHydrated);
+  const hydrateLocale = useLocaleStore((s) => s.hydrate);
+  const isLocaleHydrated = useLocaleStore((s) => s.isHydrated);
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+    hydrateLocale();
+  }, [hydrate, hydrateLocale]);
 
-  return isHydrated;
+  // The stored language has to be applied before the first screen renders, or
+  // it flashes the device language and then swaps.
+  return isHydrated && isLocaleHydrated;
 }
 
 /**
@@ -175,26 +181,6 @@ export function useMe() {
     queryFn: authApi.me,
     enabled: isAuthenticated,
   });
-}
-
-export function useMockLogin() {
-  const queryClient = useQueryClient();
-  const setAuth = useAuthStore((state) => state.setAuth);
-
-  return async () => {
-    const mockUser: import('@/types/auth').User = {
-      id: 'mock-user-id',
-      email: 'mock@example.com',
-      firstName: 'Mock',
-      lastName: 'User',
-      role: 'admin',
-      profileImageUrl: null,
-      mustChangePassword: false,
-    };
-    await setStoredUser(mockUser);
-    setAuth(mockUser);
-    queryClient.setQueryData(authKeys.me, mockUser);
-  };
 }
 
 /**

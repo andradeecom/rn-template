@@ -3,10 +3,12 @@ import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { queryClient } from '@/lib/query-client';
 import { RootNavigator } from '@/navigation';
-import { getLocales } from 'expo-localization';
 import { i18n } from '@/i18n';
 
-i18n.locale = getLocales()[0]?.languageTag || 'en';
+// The active locale is owned by useLocaleStore, which applies the stored
+// preference during hydration (see useHydrate). Only the fallback behaviour is
+// configured here — assigning i18n.locale at module scope would race that and
+// briefly show the device language instead of the chosen one.
 i18n.enableFallback = true;
 
 export default function RootLayout() {
