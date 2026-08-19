@@ -2,7 +2,8 @@ import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text, Avatar, Button } from '@/components/atoms';
-import { translate } from '@/i18n';
+import { LanguageSwitcher } from '@/components/molecules';
+import { useLocale, useTranslation } from '@/hooks/use-locale';
 
 type ProfileCardProps = {
   name: string;
@@ -13,6 +14,9 @@ type ProfileCardProps = {
 };
 
 export function ProfileCard({ name, email, avatar, onLogout, onChangePassword }: ProfileCardProps) {
+  const { locale, setLocale } = useLocale();
+  const { t } = useTranslation();
+
   return (
     <View style={styles.card}>
       <View style={styles.info}>
@@ -25,24 +29,28 @@ export function ProfileCard({ name, email, avatar, onLogout, onChangePassword }:
 
       <View style={styles.section}>
         <View style={styles.row}>
-          <Text variant="label">{translate('profile.account')}</Text>
+          <Text variant="label">{t('profile.account')}</Text>
           <Text variant="bodySmall" color="mutedForeground">
             {email}
           </Text>
         </View>
         <View style={styles.separator} />
         <View style={styles.row}>
-          <Text variant="label">{translate('profile.theme')}</Text>
+          <Text variant="label">{t('profile.theme')}</Text>
           <Text variant="bodySmall" color="mutedForeground">
-            {translate('profile.themeSystem')}
+            {t('profile.themeSystem')}
           </Text>
         </View>
         <View style={styles.separator} />
         <View style={styles.row}>
-          <Text variant="label">{translate('profile.notifications')}</Text>
+          <Text variant="label">{t('profile.notifications')}</Text>
           <Text variant="bodySmall" color="mutedForeground">
-            {translate('profile.notificationsEnabled')}
+            {t('profile.notificationsEnabled')}
           </Text>
+        </View>
+        <View style={styles.separator} />
+        <View style={styles.languageRow}>
+          <LanguageSwitcher value={locale} onChange={setLocale} />
         </View>
         <View style={styles.separator} />
         <Pressable
@@ -50,12 +58,12 @@ export function ProfileCard({ name, email, avatar, onLogout, onChangePassword }:
           onPress={onChangePassword}
           accessibilityRole="button"
         >
-          <Text variant="label">{translate('profile.changePassword')}</Text>
+          <Text variant="label">{t('profile.changePassword')}</Text>
           <MaterialCommunityIcons name="chevron-right" size={20} color={styles.chevron.color} />
         </Pressable>
       </View>
 
-      <Button label={translate('common.signOut')} variant="outline" fullWidth onPress={onLogout} />
+      <Button label={t('common.signOut')} variant="outline" fullWidth onPress={onLogout} />
     </View>
   );
 }
@@ -85,6 +93,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   rowPressed: {
     opacity: 0.6,
+  },
+  languageRow: {
+    paddingVertical: theme.spacing[2],
   },
   separator: {
     height: 1,

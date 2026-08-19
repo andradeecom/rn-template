@@ -3,6 +3,7 @@ const es = {
     welcome: 'Bienvenido, {{name}}!',
     loading: 'Cargando...',
     signOut: 'Cerrar sesión',
+    language: 'Idioma',
   },
   login: {
     title: 'Bienvenido de nuevo',
