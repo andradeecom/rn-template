@@ -51,7 +51,7 @@ Layered: `src/app/(auth)/*.tsx` (screens) → `src/hooks/use-auth.ts` (React Que
 All unauthenticated screens live in the `src/app/(auth)/` layout group: `login`, `register`, `forgot-password`, `reset-password`, `verify-email`. Because `(auth)` is a group, it does **not** appear in the URL — the routes resolve as `/login`, `/register`, etc.
 
 - `useAuthStore` (`src/stores/auth.ts`, Zustand) holds `user`, `isAuthenticated`, `isHydrated` in memory. `hydrate()` reads the persisted session id (`src/lib/secure-store.ts`, Expo SecureStore) and user (`src/lib/user-storage.ts`) on launch. A stored id only means a session *may* still be live — it is opaque, so only the server can confirm it.
-- `src/app/_layout.tsx` stays thin — it only sets the locale and mounts providers (`QueryClientProvider`, `Toast`) around `<RootNavigator />`. Navigation lives in `src/navigation/RootNavigator.tsx`: it calls `useHydrate()`, holds a spinner until hydration finishes, then renders the top-level `Stack`. Put new root-level screen registrations there, not in `_layout.tsx`.
+- `src/app/_layout.tsx` stays thin — it only configures `i18n-js` fallback behavior and mounts providers (`QueryClientProvider`, `Toast`) around `<RootNavigator />`. The active locale itself is applied by `useHydrate()` (`useLocaleStore`), not here — see [docs/internationalization.md](docs/internationalization.md). Navigation lives in `src/navigation/RootNavigator.tsx`: it calls `useHydrate()`, holds a spinner until hydration finishes, then renders the top-level `Stack`. Put new root-level screen registrations there, not in `_layout.tsx`.
 - `useHydrate` and `useAuthGuard` live in `src/hooks/use-auth.ts` alongside the rest of the auth surface. `useAuthGuard` sends unauthenticated users anywhere outside `(auth)` to `/login`, and authenticated users inside `(auth)` to `/(tabs)`. It keys off the `(auth)` group rather than `(tabs)` so there is no unrouted cold-start state (there is no `app/index.tsx`).
 - Auth is an **opaque server-side session**, not a JWT. The credential is a random id the server issues as a `Set-Cookie`; it carries no claims and cannot be refreshed — when the server rejects it, the row is gone and the only correct move is to log in again.
 - The id lives in the OS keystore (Keychain / Keystore-backed `EncryptedSharedPreferences`) via `secure-store.ts`, **never** AsyncStorage — that is unencrypted files, readable on a rooted device or from an unencrypted backup. `user-storage.ts` (AsyncStorage) holds only the non-sensitive profile.
@@ -66,7 +66,6 @@ All unauthenticated screens live in the `src/app/(auth)/` layout group: `login`,
 Two distinct flows, easy to conflate:
 - **`/change-password`** (`src/app/change-password.tsx`, registered as a modal on the root stack, reached from the profile screen) — for a signed-in user. Posts `currentPassword` + new to `POST /auth/change-password`, no email involved. The current-password field is skipped when `user.mustChangePassword` is set, mirroring the backend rule for admin-created accounts on a temporary password; `createChangePasswordSchema(requireCurrent)` takes that same flag.
 - **`/reset-password`** (in `(auth)`) — for a signed-out user who forgot their password. Token-only, reachable **exclusively** via the emailed deep link. Do not link to it from inside the app; there is no token to give it.
-- `useMockLogin` is a `__DEV__`-only escape hatch (wired into `src/app/(auth)/login.tsx`) that signs in a hardcoded mock user without hitting the network — use this pattern for any other dev-only shortcuts.
 - Logout clears secure store, stored user, cookies (`react-native-nitro-cookies`), the Zustand store, and the whole React Query cache.
 
 #### Deep links for emailed tokens
@@ -82,7 +81,9 @@ React Hook Form + Zod, wired through `@hookform/resolvers`. Schemas live in `src
 Cross-field rules use `.refine()` with an explicit `path` so the error lands on the right input (see `createRegisterSchema`'s password-match check writing to `confirmPassword`). Password minimums mirror the backend's 8-character floor on registration and reset — the login schema stays at 6 so existing accounts are not locked out.
 
 ### i18n
-`src/i18n/` wraps `i18n-js`. `src/i18n/index.ts` barrels `i18n.ts` (instance config) and `translate.ts` (helper). Locale is set once in `src/app/_layout.tsx` from `expo-localization`'s `getLocales()`, with fallback enabled. Translation keys live per-locale in `src/i18n/translations/{en,es,pt}.ts`; add new keys to all three.
+`src/i18n/` wraps `i18n-js`. `src/i18n/index.ts` barrels `i18n.ts` (instance config) and `translate.ts` (helper). Translation keys live per-locale in `src/i18n/translations/{en,es,pt}.ts`; add new keys to all three.
+
+The active locale is owned by `useLocaleStore` (`src/stores/locale.ts`), not set once at startup — see [docs/internationalization.md](docs/internationalization.md) for persistence, the language switcher, and why render-scope translation must go through `useTranslation()` rather than the plain `translate()` (React Compiler memoizes `translate()`'s result per call-site, so it goes stale after a language change; `translate()` remains correct in event handlers).
 
 ### Data fetching
 TanStack Query. `src/lib/query-client.ts` provides the single `queryClient` instance (provided via `QueryClientProvider` in `_layout.tsx`). Query keys are namespaced per domain as `const` objects (see `authKeys` in `use-auth.ts`) — follow that convention for new domains rather than inlining key arrays.

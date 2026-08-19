@@ -64,6 +64,12 @@ a header rather than relying on the ambient cookie jar.
 Full detail — storage scoping, rotation capture, logout ordering, and CSRF — in
 [docs/authentication.md](docs/authentication.md).
 
+## Language
+
+The chosen language is persisted and applied before the first screen renders,
+with a native picker on the login screen and in the profile card. See
+[docs/internationalization.md](docs/internationalization.md).
+
 ## Routing
 
 Expo Router, file-based from `src/app/`. Unauthenticated screens live in the
