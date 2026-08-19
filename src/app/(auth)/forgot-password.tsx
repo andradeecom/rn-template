@@ -2,6 +2,7 @@ import { AuthScreenLayout } from '@/components/molecules';
 import { AuthMessageCard, ForgotPasswordCard } from '@/components/organisms';
 import { useForgotPassword } from '@/hooks/use-auth';
 import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import Toast from 'react-native-toast-message';
@@ -10,6 +11,7 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const forgotPasswordMutation = useForgotPassword();
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const handleSubmitEmail = (email: string) => {
     forgotPasswordMutation.mutate(
@@ -34,9 +36,9 @@ export default function ForgotPasswordScreen() {
       <AuthScreenLayout>
         <AuthMessageCard
           tone="info"
-          title={translate('forgotPassword.sentTitle')}
-          message={translate('forgotPassword.sentMessage', { email: submittedEmail })}
-          primaryLabel={translate('forgotPassword.backToLogin')}
+          title={t('forgotPassword.sentTitle')}
+          message={t('forgotPassword.sentMessage', { email: submittedEmail })}
+          primaryLabel={t('forgotPassword.backToLogin')}
           onPrimaryPress={() => router.replace('/login')}
         />
       </AuthScreenLayout>

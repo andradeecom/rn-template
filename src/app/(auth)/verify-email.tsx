@@ -3,6 +3,7 @@ import { AuthScreenLayout, InputField } from '@/components/molecules';
 import { AuthMessageCard } from '@/components/organisms';
 import { useResendVerification, useVerifyEmail } from '@/hooks/use-auth';
 import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -15,6 +16,7 @@ export default function VerifyEmailScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
   const verifyEmailMutation = useVerifyEmail();
   const resendMutation = useResendVerification();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'verifying' | 'success' | 'failed'>(token ? 'verifying' : 'idle');
@@ -64,7 +66,7 @@ export default function VerifyEmailScreen() {
         <View style={styles.pending}>
           <ActivityIndicator />
           <Text variant="bodySmall" color="mutedForeground">
-            {translate('verifyEmail.subtitle')}
+            {t('verifyEmail.subtitle')}
           </Text>
         </View>
       </AuthScreenLayout>
@@ -76,9 +78,9 @@ export default function VerifyEmailScreen() {
       <AuthScreenLayout>
         <AuthMessageCard
           tone="success"
-          title={translate('verifyEmail.successTitle')}
-          message={translate('verifyEmail.successMessage')}
-          primaryLabel={translate('verifyEmail.goToLogin')}
+          title={t('verifyEmail.successTitle')}
+          message={t('verifyEmail.successMessage')}
+          primaryLabel={t('verifyEmail.goToLogin')}
           onPrimaryPress={() => router.replace('/login')}
         />
       </AuthScreenLayout>
@@ -92,18 +94,18 @@ export default function VerifyEmailScreen() {
       <View style={styles.stack}>
         <AuthMessageCard
           tone="error"
-          title={status === 'failed' ? translate('verifyEmail.failedTitle') : translate('verifyEmail.title')}
-          message={status === 'failed' ? translate('verifyEmail.failedMessage') : translate('verifyEmail.missingToken')}
+          title={status === 'failed' ? t('verifyEmail.failedTitle') : t('verifyEmail.title')}
+          message={status === 'failed' ? t('verifyEmail.failedMessage') : t('verifyEmail.missingToken')}
         />
 
         <View style={styles.resendCard}>
           <Text variant="bodySmall" color="mutedForeground" style={styles.prompt}>
-            {translate('verifyEmail.emailPrompt')}
+            {t('verifyEmail.emailPrompt')}
           </Text>
 
           <InputField
-            label={translate('login.emailLabel')}
-            placeholder={translate('login.emailPlaceholder')}
+            label={t('login.emailLabel')}
+            placeholder={t('login.emailPlaceholder')}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -118,7 +120,7 @@ export default function VerifyEmailScreen() {
             style={styles.resendAction}
             onPress={resendMutation.isPending ? undefined : handleResend}
           >
-            {resendMutation.isPending ? translate('verifyEmail.resending') : translate('verifyEmail.resendButton')}
+            {resendMutation.isPending ? t('verifyEmail.resending') : t('verifyEmail.resendButton')}
           </Text>
 
           <Text
@@ -127,7 +129,7 @@ export default function VerifyEmailScreen() {
             style={styles.prompt}
             onPress={() => router.replace('/login')}
           >
-            {translate('verifyEmail.goToLogin')}
+            {t('verifyEmail.goToLogin')}
           </Text>
         </View>
       </View>

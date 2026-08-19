@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useForm, Controller } from 'react-hook-form';
@@ -6,7 +5,7 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { Text, Button } from '@/components/atoms';
 import { InputField } from '@/components/molecules';
 import { createForgotPasswordSchema, type ForgotPasswordFormData } from '@/schemas/forgot-password';
-import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 
 type ForgotPasswordCardProps = {
   onSubmitEmail: (email: string) => void;
@@ -15,7 +14,10 @@ type ForgotPasswordCardProps = {
 };
 
 export function ForgotPasswordCard({ onSubmitEmail, onBackToLogin, isLoading }: ForgotPasswordCardProps) {
-  const schema = useMemo(() => createForgotPasswordSchema(), []);
+  const { t } = useTranslation();
+  // The schema embeds translated messages, so it is rebuilt every render to
+  // follow the active language.
+  const schema = createForgotPasswordSchema();
 
   const {
     control,
@@ -34,10 +36,10 @@ export function ForgotPasswordCard({ onSubmitEmail, onBackToLogin, isLoading }: 
     <View style={styles.card}>
       <View style={styles.header}>
         <Text variant="h2" style={styles.title}>
-          {translate('forgotPassword.title')}
+          {t('forgotPassword.title')}
         </Text>
         <Text variant="bodySmall" color="mutedForeground" style={styles.subtitle}>
-          {translate('forgotPassword.subtitle')}
+          {t('forgotPassword.subtitle')}
         </Text>
       </View>
 
@@ -47,8 +49,8 @@ export function ForgotPasswordCard({ onSubmitEmail, onBackToLogin, isLoading }: 
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('login.emailLabel')}
-              placeholder={translate('login.emailPlaceholder')}
+              label={t('login.emailLabel')}
+              placeholder={t('login.emailPlaceholder')}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -62,7 +64,7 @@ export function ForgotPasswordCard({ onSubmitEmail, onBackToLogin, isLoading }: 
         />
 
         <Button
-          label={isLoading ? translate('forgotPassword.submitting') : translate('forgotPassword.submitButton')}
+          label={isLoading ? t('forgotPassword.submitting') : t('forgotPassword.submitButton')}
           variant="primary"
           size="lg"
           fullWidth
@@ -70,13 +72,7 @@ export function ForgotPasswordCard({ onSubmitEmail, onBackToLogin, isLoading }: 
           disabled={isLoading}
         />
 
-        <Button
-          label={translate('forgotPassword.backToLogin')}
-          variant="ghost"
-          size="md"
-          fullWidth
-          onPress={onBackToLogin}
-        />
+        <Button label={t('forgotPassword.backToLogin')} variant="ghost" size="md" fullWidth onPress={onBackToLogin} />
       </View>
     </View>
   );

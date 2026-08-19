@@ -1,19 +1,21 @@
 import { View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { Text } from '@/components/atoms';
-import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 
 export function LoginFooter() {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <Text variant="caption" color="mutedForeground">
-        {translate('login.privacyPolicy')}
+        {t('login.privacyPolicy')}
       </Text>
       <Text variant="caption" color="mutedForeground">
-        {translate('login.termsOfService')}
+        {t('login.termsOfService')}
       </Text>
       <Text variant="caption" color="mutedForeground">
-        {translate('login.support')}
+        {t('login.support')}
       </Text>
     </View>
   );
