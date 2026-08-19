@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text, Button } from '@/components/atoms';
 import { InputField } from '@/components/molecules';
 import { createRegisterSchema, type RegisterFormData } from '@/schemas/register';
-import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 import type { RegisterRequest } from '@/types/auth';
 
 type RegisterCardProps = {
@@ -17,7 +17,10 @@ type RegisterCardProps = {
 };
 
 export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardProps) {
-  const schema = useMemo(() => createRegisterSchema(), []);
+  const { t } = useTranslation();
+  // The schema embeds translated messages, so it is rebuilt every render to
+  // follow the active language.
+  const schema = createRegisterSchema();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const {
@@ -44,7 +47,7 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
         onPress={() => setIsPasswordVisible((prev) => !prev)}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={translate(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
+        accessibilityLabel={t(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
       >
         <MaterialCommunityIcons
           name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
@@ -59,10 +62,10 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
     <View style={styles.card}>
       <View style={styles.header}>
         <Text variant="h2" style={styles.title}>
-          {translate('register.title')}
+          {t('register.title')}
         </Text>
         <Text variant="bodySmall" color="mutedForeground">
-          {translate('register.subtitle')}
+          {t('register.subtitle')}
         </Text>
       </View>
 
@@ -72,8 +75,8 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
           name="firstName"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('register.firstNameLabel')}
-              placeholder={translate('register.firstNamePlaceholder')}
+              label={t('register.firstNameLabel')}
+              placeholder={t('register.firstNamePlaceholder')}
               autoCapitalize="words"
               autoComplete="given-name"
               value={value}
@@ -89,8 +92,8 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
           name="lastName"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('register.lastNameLabel')}
-              placeholder={translate('register.lastNamePlaceholder')}
+              label={t('register.lastNameLabel')}
+              placeholder={t('register.lastNamePlaceholder')}
               autoCapitalize="words"
               autoComplete="family-name"
               value={value}
@@ -106,8 +109,8 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('login.emailLabel')}
-              placeholder={translate('login.emailPlaceholder')}
+              label={t('login.emailLabel')}
+              placeholder={t('login.emailPlaceholder')}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -125,8 +128,8 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
           name="password"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('login.passwordLabel')}
-              placeholder={translate('login.passwordPlaceholder')}
+              label={t('login.passwordLabel')}
+              placeholder={t('login.passwordPlaceholder')}
               secureTextEntry={!isPasswordVisible}
               autoComplete="new-password"
               rightIcon={rightIcon()}
@@ -143,8 +146,8 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
           name="confirmPassword"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('register.confirmPasswordLabel')}
-              placeholder={translate('register.confirmPasswordPlaceholder')}
+              label={t('register.confirmPasswordLabel')}
+              placeholder={t('register.confirmPasswordPlaceholder')}
               secureTextEntry={!isPasswordVisible}
               autoComplete="new-password"
               value={value}
@@ -156,7 +159,7 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
         />
 
         <Button
-          label={isLoading ? translate('register.submitting') : translate('register.submitButton')}
+          label={isLoading ? t('register.submitting') : t('register.submitButton')}
           variant="primary"
           size="lg"
           fullWidth
@@ -167,10 +170,10 @@ export function RegisterCard({ onRegister, onSignIn, isLoading }: RegisterCardPr
 
       <View style={styles.footer}>
         <Text variant="bodySmall" color="mutedForeground">
-          {translate('register.hasAccount')}
+          {t('register.hasAccount')}
         </Text>
         <Text variant="bodySmall" color="primary" onPress={onSignIn}>
-          {translate('register.signIn')}
+          {t('register.signIn')}
         </Text>
       </View>
     </View>

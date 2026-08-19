@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text, Button } from '@/components/atoms';
 import { InputField } from '@/components/molecules';
 import { createResetPasswordSchema, type ResetPasswordFormData } from '@/schemas/reset-password';
-import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 
 type ResetPasswordCardProps = {
   onResetPassword: (password: string, confirmPassword: string) => void;
@@ -15,7 +15,10 @@ type ResetPasswordCardProps = {
 };
 
 export function ResetPasswordCard({ onResetPassword, isLoading }: ResetPasswordCardProps) {
-  const schema = useMemo(() => createResetPasswordSchema(), []);
+  const { t } = useTranslation();
+  // The schema embeds translated messages, so it is rebuilt every render to
+  // follow the active language.
+  const schema = createResetPasswordSchema();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const {
@@ -37,7 +40,7 @@ export function ResetPasswordCard({ onResetPassword, isLoading }: ResetPasswordC
         onPress={() => setIsPasswordVisible((prev) => !prev)}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={translate(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
+        accessibilityLabel={t(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
       >
         <MaterialCommunityIcons
           name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
@@ -52,10 +55,10 @@ export function ResetPasswordCard({ onResetPassword, isLoading }: ResetPasswordC
     <View style={styles.card}>
       <View style={styles.header}>
         <Text variant="h2" style={styles.title}>
-          {translate('resetPassword.title')}
+          {t('resetPassword.title')}
         </Text>
         <Text variant="bodySmall" color="mutedForeground" style={styles.subtitle}>
-          {translate('resetPassword.subtitle')}
+          {t('resetPassword.subtitle')}
         </Text>
       </View>
 
@@ -65,8 +68,8 @@ export function ResetPasswordCard({ onResetPassword, isLoading }: ResetPasswordC
           name="password"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('resetPassword.newPasswordLabel')}
-              placeholder={translate('resetPassword.newPasswordPlaceholder')}
+              label={t('resetPassword.newPasswordLabel')}
+              placeholder={t('resetPassword.newPasswordPlaceholder')}
               secureTextEntry={!isPasswordVisible}
               autoComplete="new-password"
               rightIcon={rightIcon()}
@@ -83,8 +86,8 @@ export function ResetPasswordCard({ onResetPassword, isLoading }: ResetPasswordC
           name="confirmPassword"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('register.confirmPasswordLabel')}
-              placeholder={translate('register.confirmPasswordPlaceholder')}
+              label={t('register.confirmPasswordLabel')}
+              placeholder={t('register.confirmPasswordPlaceholder')}
               secureTextEntry={!isPasswordVisible}
               autoComplete="new-password"
               value={value}
@@ -96,7 +99,7 @@ export function ResetPasswordCard({ onResetPassword, isLoading }: ResetPasswordC
         />
 
         <Button
-          label={isLoading ? translate('resetPassword.submitting') : translate('resetPassword.submitButton')}
+          label={isLoading ? t('resetPassword.submitting') : t('resetPassword.submitButton')}
           variant="primary"
           size="lg"
           fullWidth

@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
-import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -17,7 +19,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: translate('tabs.home'),
+          title: t('tabs.home'),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
@@ -26,7 +28,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: translate('tabs.profile'),
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),

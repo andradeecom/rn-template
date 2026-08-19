@@ -3,6 +3,7 @@ const pt = {
     welcome: 'Bem-vindo, {{name}}!',
     loading: 'Carregando...',
     signOut: 'Sair',
+    language: 'Idioma',
   },
   login: {
     title: 'Bem-vindo de volta',

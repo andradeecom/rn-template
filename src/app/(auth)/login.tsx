@@ -1,7 +1,8 @@
-import { Button, Text } from '@/components/atoms';
-import { AuthScreenLayout } from '@/components/molecules';
+import { Text } from '@/components/atoms';
+import { AuthScreenLayout, LanguageSwitcher } from '@/components/molecules';
 import { LoginCard, LoginFooter } from '@/components/organisms';
-import { useGoogleLogin, useLogin, useMockLogin } from '@/hooks/use-auth';
+import { useGoogleLogin, useLogin } from '@/hooks/use-auth';
+import { useLocale, useTranslation } from '@/hooks/use-locale';
 import { translate } from '@/i18n';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
@@ -12,7 +13,8 @@ export default function LoginScreen() {
   const router = useRouter();
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
-  const mockLogin = useMockLogin();
+  const { locale, setLocale } = useLocale();
+  const { t } = useTranslation();
 
   const handleLogin = (email: string, password: string) => {
     loginMutation.mutate(
@@ -61,25 +63,18 @@ export default function LoginScreen() {
 
       <View style={styles.signUpRow}>
         <Text variant="bodySmall" color="mutedForeground">
-          {translate('login.noAccount')}
+          {t('login.noAccount')}
         </Text>
         <Text variant="bodySmall" color="primary" onPress={() => router.push('/register')}>
-          {translate('login.signUp')}
+          {t('login.signUp')}
         </Text>
       </View>
 
       <LoginFooter />
 
-      {__DEV__ && (
-        <Button
-          label="[DEV] Skip login with mock user"
-          variant="ghost"
-          size="sm"
-          fullWidth
-          onPress={mockLogin}
-          style={styles.devButton}
-        />
-      )}
+      <View style={styles.languageRow}>
+        <LanguageSwitcher value={locale} onChange={setLocale} />
+      </View>
     </AuthScreenLayout>
   );
 }
@@ -91,7 +86,7 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing[2],
     paddingTop: theme.spacing[5],
   },
-  devButton: {
-    marginTop: theme.spacing[4],
+  languageRow: {
+    paddingTop: theme.spacing[5],
   },
 }));

@@ -2,6 +2,7 @@ import { AuthScreenLayout } from '@/components/molecules';
 import { AuthMessageCard, ChangePasswordCard } from '@/components/organisms';
 import { useChangePassword } from '@/hooks/use-auth';
 import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 import { useAuthStore } from '@/stores/auth';
 import type { ChangePasswordRequest } from '@/types/auth';
 import { isAxiosError } from 'axios';
@@ -14,6 +15,7 @@ export default function ChangePasswordScreen() {
   const user = useAuthStore((s) => s.user);
   const changePasswordMutation = useChangePassword();
   const [isDone, setIsDone] = useState(false);
+  const { t } = useTranslation();
 
   const handleChangePassword = (payload: ChangePasswordRequest) => {
     changePasswordMutation.mutate(payload, {
@@ -38,9 +40,9 @@ export default function ChangePasswordScreen() {
       <AuthScreenLayout>
         <AuthMessageCard
           tone="success"
-          title={translate('changePassword.successTitle')}
-          message={translate('changePassword.successMessage')}
-          primaryLabel={translate('changePassword.backToProfile')}
+          title={t('changePassword.successTitle')}
+          message={t('changePassword.successMessage')}
+          primaryLabel={t('changePassword.backToProfile')}
           onPrimaryPress={() => router.replace('/profile')}
         />
       </AuthScreenLayout>

@@ -2,8 +2,8 @@ import { Pressable, type PressableProps, type ViewStyle } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { FontAwesome } from '@expo/vector-icons';
 import { Text } from '@/components/atoms';
-import { translate } from '@/i18n';
 import type { TxKeyPath } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 
 type SocialProvider = 'google' | 'apple';
 
@@ -22,10 +22,12 @@ const ICONS: Record<SocialProvider, React.ComponentProps<typeof FontAwesome>['na
 };
 
 export function SocialButton({ provider, style, ...rest }: SocialButtonProps) {
+  const { t } = useTranslation();
+
   return (
     <Pressable style={({ pressed }) => [styles.container, pressed && styles.pressed, style as ViewStyle]} {...rest}>
       <FontAwesome name={ICONS[provider]} size={18} color={styles.icon.color} />
-      <Text variant="label">{translate(LABEL_KEYS[provider])}</Text>
+      <Text variant="label">{t(LABEL_KEYS[provider])}</Text>
     </Pressable>
   );
 }

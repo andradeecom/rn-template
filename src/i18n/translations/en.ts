@@ -3,6 +3,7 @@ const en = {
     welcome: 'Welcome, {{name}}!',
     loading: 'Loading...',
     signOut: 'Sign Out',
+    language: 'Language',
   },
   login: {
     title: 'Welcome Back',

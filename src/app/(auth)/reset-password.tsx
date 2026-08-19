@@ -2,6 +2,7 @@ import { AuthScreenLayout } from '@/components/molecules';
 import { AuthMessageCard, ResetPasswordCard } from '@/components/organisms';
 import { useResetPassword } from '@/hooks/use-auth';
 import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import Toast from 'react-native-toast-message';
@@ -12,6 +13,7 @@ export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
   const resetPasswordMutation = useResetPassword();
   const [isDone, setIsDone] = useState(false);
+  const { t } = useTranslation();
 
   const handleResetPassword = (password: string, confirmPassword: string) => {
     if (!token) return;
@@ -36,11 +38,11 @@ export default function ResetPasswordScreen() {
       <AuthScreenLayout>
         <AuthMessageCard
           tone="error"
-          title={translate('resetPassword.title')}
-          message={translate('resetPassword.missingToken')}
-          primaryLabel={translate('resetPassword.requestNewLink')}
+          title={t('resetPassword.title')}
+          message={t('resetPassword.missingToken')}
+          primaryLabel={t('resetPassword.requestNewLink')}
           onPrimaryPress={() => router.replace('/forgot-password')}
-          secondaryLabel={translate('verifyEmail.goToLogin')}
+          secondaryLabel={t('verifyEmail.goToLogin')}
           onSecondaryPress={() => router.replace('/login')}
         />
       </AuthScreenLayout>
@@ -52,9 +54,9 @@ export default function ResetPasswordScreen() {
       <AuthScreenLayout>
         <AuthMessageCard
           tone="success"
-          title={translate('resetPassword.successTitle')}
-          message={translate('resetPassword.successMessage')}
-          primaryLabel={translate('verifyEmail.goToLogin')}
+          title={t('resetPassword.successTitle')}
+          message={t('resetPassword.successMessage')}
+          primaryLabel={t('verifyEmail.goToLogin')}
           onPrimaryPress={() => router.replace('/login')}
         />
       </AuthScreenLayout>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text, Button } from '@/components/atoms';
 import { InputField } from '@/components/molecules';
 import { createChangePasswordSchema, type ChangePasswordFormData } from '@/schemas/change-password';
-import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 import type { ChangePasswordRequest } from '@/types/auth';
 
 type ChangePasswordCardProps = {
@@ -24,7 +24,10 @@ export function ChangePasswordCard({
   requireCurrentPassword = true,
   isLoading,
 }: ChangePasswordCardProps) {
-  const schema = useMemo(() => createChangePasswordSchema(requireCurrentPassword), [requireCurrentPassword]);
+  const { t } = useTranslation();
+  // The schema embeds translated messages, so it is rebuilt every render to
+  // follow the active language.
+  const schema = createChangePasswordSchema(requireCurrentPassword);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const {
@@ -50,7 +53,7 @@ export function ChangePasswordCard({
         onPress={() => setIsPasswordVisible((prev) => !prev)}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={translate(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
+        accessibilityLabel={t(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
       >
         <MaterialCommunityIcons
           name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
@@ -65,12 +68,10 @@ export function ChangePasswordCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <Text variant="h2" style={styles.title}>
-          {translate('changePassword.title')}
+          {t('changePassword.title')}
         </Text>
         <Text variant="bodySmall" color="mutedForeground" style={styles.subtitle}>
-          {requireCurrentPassword
-            ? translate('changePassword.subtitle')
-            : translate('changePassword.temporarySubtitle')}
+          {requireCurrentPassword ? t('changePassword.subtitle') : t('changePassword.temporarySubtitle')}
         </Text>
       </View>
 
@@ -81,8 +82,8 @@ export function ChangePasswordCard({
             name="currentPassword"
             render={({ field: { onChange, onBlur, value } }) => (
               <InputField
-                label={translate('changePassword.currentPasswordLabel')}
-                placeholder={translate('changePassword.currentPasswordPlaceholder')}
+                label={t('changePassword.currentPasswordLabel')}
+                placeholder={t('changePassword.currentPasswordPlaceholder')}
                 secureTextEntry={!isPasswordVisible}
                 autoComplete="current-password"
                 rightIcon={rightIcon()}
@@ -100,8 +101,8 @@ export function ChangePasswordCard({
           name="newPassword"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('resetPassword.newPasswordLabel')}
-              placeholder={translate('resetPassword.newPasswordPlaceholder')}
+              label={t('resetPassword.newPasswordLabel')}
+              placeholder={t('resetPassword.newPasswordPlaceholder')}
               secureTextEntry={!isPasswordVisible}
               autoComplete="new-password"
               rightIcon={requireCurrentPassword ? undefined : rightIcon()}
@@ -118,8 +119,8 @@ export function ChangePasswordCard({
           name="confirmPassword"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('register.confirmPasswordLabel')}
-              placeholder={translate('register.confirmPasswordPlaceholder')}
+              label={t('register.confirmPasswordLabel')}
+              placeholder={t('register.confirmPasswordPlaceholder')}
               secureTextEntry={!isPasswordVisible}
               autoComplete="new-password"
               value={value}
@@ -131,7 +132,7 @@ export function ChangePasswordCard({
         />
 
         <Button
-          label={isLoading ? translate('changePassword.submitting') : translate('changePassword.submitButton')}
+          label={isLoading ? t('changePassword.submitting') : t('changePassword.submitButton')}
           variant="primary"
           size="lg"
           fullWidth
@@ -140,7 +141,7 @@ export function ChangePasswordCard({
         />
 
         <Button
-          label={translate('changePassword.cancel')}
+          label={t('changePassword.cancel')}
           variant="ghost"
           size="md"
           fullWidth

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text, Button, Divider } from '@/components/atoms';
 import { InputField, SocialButton } from '@/components/molecules';
 import { createLoginSchema, type LoginFormData } from '@/schemas/login';
-import { translate } from '@/i18n';
+import { useTranslation } from '@/hooks/use-locale';
 
 type LoginCardProps = {
   onLogin: (email: string, password: string) => void;
@@ -24,7 +24,10 @@ export function LoginCard({
   onForgotPassword,
   isLoading,
 }: LoginCardProps) {
-  const schema = useMemo(() => createLoginSchema(), []);
+  const { t } = useTranslation();
+  // The schema embeds translated messages, so it is rebuilt every render to
+  // follow the active language.
+  const schema = createLoginSchema();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const {
@@ -46,7 +49,7 @@ export function LoginCard({
         onPress={() => setIsPasswordVisible((prev) => !prev)}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={translate(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
+        accessibilityLabel={t(isPasswordVisible ? 'login.hidePassword' : 'login.showPassword')}
       >
         <MaterialCommunityIcons
           name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
@@ -61,10 +64,10 @@ export function LoginCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <Text variant="h2" style={styles.title}>
-          {translate('login.title')}
+          {t('login.title')}
         </Text>
         <Text variant="bodySmall" color="mutedForeground">
-          {translate('login.subtitle')}
+          {t('login.subtitle')}
         </Text>
       </View>
 
@@ -74,8 +77,8 @@ export function LoginCard({
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('login.emailLabel')}
-              placeholder={translate('login.emailPlaceholder')}
+              label={t('login.emailLabel')}
+              placeholder={t('login.emailPlaceholder')}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -92,10 +95,10 @@ export function LoginCard({
           name="password"
           render={({ field: { onChange, onBlur, value } }) => (
             <InputField
-              label={translate('login.passwordLabel')}
-              rightLabel={translate('login.forgotPassword')}
+              label={t('login.passwordLabel')}
+              rightLabel={t('login.forgotPassword')}
               onRightLabelPress={onForgotPassword}
-              placeholder={translate('login.passwordPlaceholder')}
+              placeholder={t('login.passwordPlaceholder')}
               secureTextEntry={!isPasswordVisible}
               rightIcon={rightIcon()}
               value={value}
@@ -107,7 +110,7 @@ export function LoginCard({
         />
 
         <Button
-          label={isLoading ? translate('login.signingIn') : translate('login.loginButton')}
+          label={isLoading ? t('login.signingIn') : t('login.loginButton')}
           variant="primary"
           size="lg"
           fullWidth
@@ -116,7 +119,7 @@ export function LoginCard({
         />
       </View>
 
-      <Divider label={translate('login.or')} />
+      <Divider label={t('login.or')} />
 
       <View style={styles.socialButtons}>
         <SocialButton provider="google" onPress={onLoginWithGoogle} />
