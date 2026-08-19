@@ -10,11 +10,7 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "CFBundleLocalizations": [
-          "en",
-          "es",
-          "pt"
-        ]
+        "CFBundleLocalizations": ["en", "es", "pt"]
       },
       "bundleIdentifier": "com.andradee.rntemplate"
     },
@@ -35,6 +31,14 @@
     "plugins": [
       "expo-router",
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
@@ -48,22 +52,14 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": [
-              "en",
-              "es",
-              "pt"
-            ],
-            "android": [
-              "en",
-              "es",
-              "pt"
-            ]
+            "ios": ["en", "es", "pt"],
+            "android": ["en", "es", "pt"]
           }
         }
       ],
       "expo-secure-store",
       [
-        "@react-native-google-signin/google-signin",
+        "@react-native-google-signin/google-signin/app.plugin.js",
         {
           "iosUrlScheme": "com.googleusercontent.apps.397336416856-dosvk0v405lhmucnd3ietr86lravpj61"
         }
