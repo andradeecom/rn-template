@@ -1,6 +1,5 @@
-import { clearLocalSession } from '@/lib/api-client';
+import { getAuthPort } from '@/adapters';
 import { setStoredUser } from '@/lib/user-storage';
-import { authApi } from '@/services/auth';
 import { useAuthStore } from '@/stores/auth';
 import { useLocaleStore } from '@/stores/locale';
 import type {
@@ -76,10 +75,11 @@ export function useLogin() {
   const setAuth = useAuthStore((state) => state.setAuth);
 
   return useMutation({
-    mutationFn: (credentials: LoginRequest) => authApi.login(credentials),
+    mutationFn: (credentials: LoginRequest) => getAuthPort().login(credentials),
     onSuccess: async (data) => {
-      // The session id arrived as a Set-Cookie header and was written to the
-      // keystore by the response interceptor — there is no token in `data`.
+      // `data` carries the profile and nothing else. Whatever credential the
+      // active provider issued was persisted inside its adapter before this
+      // resolved — deliberately not something this layer can see or handle.
       await setStoredUser(data.user);
       setAuth(data.user);
       queryClient.setQueryData(authKeys.me, data.user);
@@ -94,31 +94,31 @@ export function useLogin() {
  */
 export function useRegister() {
   return useMutation({
-    mutationFn: (payload: RegisterRequest) => authApi.register(payload),
+    mutationFn: (payload: RegisterRequest) => getAuthPort().register(payload),
   });
 }
 
 export function useForgotPassword() {
   return useMutation({
-    mutationFn: (payload: ForgotPasswordRequest) => authApi.forgotPassword(payload),
+    mutationFn: (payload: ForgotPasswordRequest) => getAuthPort().forgotPassword(payload),
   });
 }
 
 export function useResetPassword() {
   return useMutation({
-    mutationFn: (payload: ResetPasswordRequest) => authApi.resetPassword(payload),
+    mutationFn: (payload: ResetPasswordRequest) => getAuthPort().resetPassword(payload),
   });
 }
 
 export function useVerifyEmail() {
   return useMutation({
-    mutationFn: (payload: VerifyEmailRequest) => authApi.verifyEmail(payload),
+    mutationFn: (payload: VerifyEmailRequest) => getAuthPort().verifyEmail(payload),
   });
 }
 
 export function useResendVerification() {
   return useMutation({
-    mutationFn: (payload: ResendVerificationRequest) => authApi.resendVerification(payload),
+    mutationFn: (payload: ResendVerificationRequest) => getAuthPort().resendVerification(payload),
   });
 }
 
@@ -133,7 +133,7 @@ export function useChangePassword() {
   const setAuth = useAuthStore((state) => state.setAuth);
 
   return useMutation({
-    mutationFn: (payload: ChangePasswordRequest) => authApi.changePassword(payload),
+    mutationFn: (payload: ChangePasswordRequest) => getAuthPort().changePassword(payload),
     onSuccess: async () => {
       if (!user?.mustChangePassword) return;
 
@@ -163,7 +163,7 @@ export function useGoogleLogin() {
         throw new Error('No ID token received from Google');
       }
 
-      return authApi.googleLogin({ idToken });
+      return getAuthPort().googleLogin({ idToken });
     },
     onSuccess: async (data) => {
       await setStoredUser(data.user);
@@ -178,7 +178,7 @@ export function useMe() {
 
   return useQuery({
     queryKey: authKeys.me,
-    queryFn: authApi.me,
+    queryFn: () => getAuthPort().me(),
     enabled: isAuthenticated,
   });
 }
@@ -197,30 +197,30 @@ export function useLogout() {
 
   return async () => {
     try {
-      await authApi.logout();
+      await getAuthPort().logout();
     } catch {
       // Offline or server unreachable — the local session still goes.
     }
 
-    await clearLocalSession();
+    await getAuthPort().clearSession();
     clearAuth();
     queryClient.clear();
   };
 }
 
-/** Signs the user out of every device by deleting all their session rows. */
+/** Signs the user out of every device, revoking every credential the account holds. */
 export function useLogoutAll() {
   const queryClient = useQueryClient();
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   return async () => {
     try {
-      await authApi.logoutAll();
+      await getAuthPort().logoutAll();
     } catch {
       // Fall through to the local clear.
     }
 
-    await clearLocalSession();
+    await getAuthPort().clearSession();
     clearAuth();
     queryClient.clear();
   };

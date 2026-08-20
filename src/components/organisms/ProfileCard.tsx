@@ -48,10 +48,7 @@ export function ProfileCard({ name, email, avatar, onLogout, onChangePassword }:
             {t('profile.notificationsEnabled')}
           </Text>
         </View>
-        <View style={styles.separator} />
-        <View style={styles.languageRow}>
-          <LanguageSwitcher value={locale} onChange={setLocale} />
-        </View>
+
         <View style={styles.separator} />
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -61,6 +58,10 @@ export function ProfileCard({ name, email, avatar, onLogout, onChangePassword }:
           <Text variant="label">{t('profile.changePassword')}</Text>
           <MaterialCommunityIcons name="chevron-right" size={20} color={styles.chevron.color} />
         </Pressable>
+        <View style={styles.separator} />
+        <View style={styles.languageRow}>
+          <LanguageSwitcher value={locale} onChange={setLocale} />
+        </View>
       </View>
 
       <Button label={t('common.signOut')} variant="outline" fullWidth onPress={onLogout} />

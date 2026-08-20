@@ -15,7 +15,7 @@ server rejects it, the row is gone and the only correct move is to log in again.
 - **Rotation**: the response interceptor captures rotated ids from `set-cookie`.
   Missing one means presenting a revoked id on the next call, which the server
   reads as reuse and answers by killing the whole session family.
-- **Logout** calls the backend *before* clearing locally, so the row is actually
+- **Logout** calls the backend _before_ clearing locally, so the row is actually
   deleted. Clearing only the device would leave the id usable by anyone who
   captured it. It still clears locally if the network call fails.
 - **CSRF**: a native app is not CSRF-exposed, but the backend applies one rule to
@@ -23,8 +23,14 @@ server rejects it, the row is gone and the only correct move is to log in again.
   and echoed back when the server has issued one.
 
 Layering: screens → `src/hooks/use-auth.ts` (React Query + Zustand writes) →
-`src/services/auth.ts` (`authApi`) → `src/lib/api-client.ts` (axios instance).
+`src/adapters` (`getAuthPort()`) → `src/services/auth.ts` (`authApi`) →
+`src/lib/api-client.ts` (axios instance).
+
+Everything above describes the **`api` provider**. Hooks reach it through the
+provider-agnostic port in `src/adapters/`, so the credential model here — opaque
+id, cookie transport, server rotation — is one adapter's implementation, not a
+contract the app depends on. See [backend-adapters.md](backend-adapters.md).
 
 `useHydrate` restores the session on launch and `useAuthGuard` keeps the route
-and auth state in sync. A stored id only means a session *may* still be live —
+and auth state in sync. A stored id only means a session _may_ still be live —
 it is opaque, so only the server can confirm it.

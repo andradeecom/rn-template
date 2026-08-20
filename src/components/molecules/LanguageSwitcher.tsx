@@ -18,6 +18,7 @@ const LANGUAGE_NAMES: Record<SupportedLocale, string> = {
 
 type LanguageSwitcherProps = {
   value: SupportedLocale;
+  hasLabel?: boolean;
   onChange: (locale: SupportedLocale) => void;
 };
 
@@ -27,14 +28,12 @@ type LanguageSwitcherProps = {
  * preferable to a hand-built menu — it matches what users expect on each
  * platform and is accessible without extra work.
  */
-export function LanguageSwitcher({ value, onChange }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ value, onChange, hasLabel = true }: LanguageSwitcherProps) {
   const { t } = useTranslation();
 
   return (
     <View style={styles.container}>
-      <Text variant="label" color="mutedForeground">
-        {t('common.language')}
-      </Text>
+      {hasLabel && <Text variant="label">{t('common.language')}</Text>}
 
       <Host matchContents>
         <Picker
@@ -57,6 +56,8 @@ export function LanguageSwitcher({ value, onChange }: LanguageSwitcherProps) {
 const styles = StyleSheet.create((theme) => ({
   container: {
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: theme.spacing[1],
   },
 }));

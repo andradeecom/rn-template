@@ -14,7 +14,12 @@ jest.mock('expo-secure-store', () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'afterFirstUnlockThisDeviceOnly',
 }));
 
+// `__esModule` matters: the api client imports this module's *default* export,
+// and with esModuleInterop on, the interop helper only unwraps `.default` when
+// the flag is present. Without it the mock object itself is handed over as the
+// default and `NitroCookies.clearAll` is undefined at the call site.
 jest.mock('react-native-nitro-cookies', () => ({
+  __esModule: true,
   default: { clearAll: jest.fn() },
 }));
 
