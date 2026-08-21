@@ -1,8 +1,9 @@
 import { Stack } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
-import { ActivityIndicator, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useAuthGuard, useHydrate } from '@/hooks/use-auth';
+import { useTheme } from '@/hooks/use-theme';
 
 /**
  * Holds the UI until the persisted session has been read, then renders the
@@ -10,11 +11,13 @@ import { useAuthGuard, useHydrate } from '@/hooks/use-auth';
  * login screen to an already signed-in user.
  *
  * The `ThemeProvider` is required by the native tabs in `TabsNavigator`: without
- * it, header buttons flicker when switching tabs.
+ * it, header buttons flicker when switching tabs. It reads the app's own theme
+ * rather than `useColorScheme()` so navigation chrome and Unistyles screens
+ * always agree — the device scheme is not what decides the theme here.
  */
 export function RootNavigator() {
   const isHydrated = useHydrate();
-  const colorScheme = useColorScheme();
+  const { isDark } = useTheme();
   useAuthGuard();
 
   if (!isHydrated) {
@@ -26,7 +29,7 @@ export function RootNavigator() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
