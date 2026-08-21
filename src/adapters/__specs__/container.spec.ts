@@ -92,3 +92,24 @@ describe('the active adapter', () => {
     await expect(getAuthPort().me()).resolves.toEqual({ id: 'u1' });
   });
 });
+
+/**
+ * The container imports every provider to build its registry, so any
+ * module-level side effect in an adapter runs on every launch regardless of
+ * which provider is selected.
+ *
+ * This regressed once: `createClient` throws when the Supabase URL is unset, so
+ * constructing it at import crashed the app on startup for anyone using the
+ * REST backend without Supabase credentials — the default configuration.
+ */
+describe('importing providers has no side effects', () => {
+  it('builds the registry without Supabase credentials configured', () => {
+    expect(process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').toBe('');
+    expect(() => jest.requireActual('@/adapters/container')).not.toThrow();
+  });
+
+  it('resolves the api provider while Supabase is unconfigured', () => {
+    expect(getBackendAdapter()).toBe(apiAdapter);
+    expect(getAuthPort()).toBe(apiAdapter.auth);
+  });
+});

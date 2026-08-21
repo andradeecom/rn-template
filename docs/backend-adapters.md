@@ -36,14 +36,17 @@ src/adapters/
   container.ts    # resolves the active provider; the DI seam
   index.ts        # barrel — import from '@/adapters'
   api/            # proprietary REST backend (default)
-  supabase/       # stub only — contract shape, no live calls
+  supabase/       # supabase-js provider
+    auth.ts       #   the AuthPort implementation
+    client.ts     #   lazy client + chunked SecureStore adapter
+    mappers.ts    #   Supabase user/error → app types
 ```
 
 ## Selecting a provider
 
 ```bash
 EXPO_PUBLIC_API_PROVIDER="api"       # default — the REST backend
-EXPO_PUBLIC_API_PROVIDER="supabase"  # stub; every method rejects
+EXPO_PUBLIC_API_PROVIDER="supabase"  # supabase-js
 ```
 
 An unrecognized value warns and falls back to `api` rather than throwing.
@@ -90,6 +93,64 @@ shape of a credential they have no business reading. Instead each adapter
 persists its own, internally — and nothing above the adapter layer can tell
 which provider is live.
 
+```mermaid
+graph TD
+    subgraph app ["Provider-agnostic — never sees a credential"]
+        SCREEN["Screens<br/>src/app/**"]
+        HOOK["Hooks<br/>use-auth.ts"]
+        PORT["AuthPort<br/>adapters/ports.ts<br/><i>login → { user }</i>"]
+    end
+
+    subgraph api ["api provider — owns an opaque session id"]
+        AAD["adapters/api/auth.ts"]
+        SVC["services/auth.ts"]
+        CLIENT["lib/api-client.ts<br/><i>interceptors</i>"]
+        KEY1[("SecureStore<br/>session id + CSRF")]
+    end
+
+    subgraph sb ["supabase provider — owns a JWT pair"]
+        SAD["adapters/supabase/auth.ts"]
+        SDK["supabase-js"]
+        KEY2[("SecureStore<br/>access + refresh")]
+    end
+
+    SCREEN --> HOOK --> PORT
+    PORT -.->|"=api"| AAD
+    PORT -.->|"=supabase"| SAD
+    AAD --> SVC --> CLIENT --> KEY1
+    SAD --> SDK --> KEY2
+
+    classDef agnostic fill:#eef2ff,stroke:#6366f1,color:#1e1b4b
+    classDef vault fill:#166534,stroke:#14532d,color:#fff
+    class SCREEN,HOOK,AAD,SVC,CLIENT,SAD,SDK agnostic
+    class KEY1,KEY2 vault
+
+    style PORT fill:#2563eb,stroke:#1e40af,color:#fff
+    style app fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+    style api fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+    style sb fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+```
+
+The credential exists only inside the lower two boxes. Everything above the port
+deals in `User`.
+
+### Where this lives in the code
+
+| Guarantee                         | Code                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| Contract carries no credential    | `ports.ts` — `login` returns `LoginResponse` (`{ user }`)                      |
+| Only credential-adjacent method   | `ports.ts` — `clearSession: () => Promise<void>`, discards without exposing    |
+| `api` binds its own clear         | `adapters/api/auth.ts` — `clearSession: clearLocalSession`                     |
+| `api` persists the rotated id     | `lib/api-client.ts` — response interceptor calls `setSessionId`/`setCsrfToken` |
+| `api` wipes keystore + cookie jar | `lib/api-client.ts` — `clearLocalSession()`                                    |
+
+To verify the boundary holds after a change, grep for credential access above
+the adapter layer — it should return nothing:
+
+```bash
+grep -rn "getSessionId\|setSessionId\|secure-store" src/hooks src/app src/components
+```
+
 `clearSession` is the one credential-adjacent method on the port, because the
 401 handler and the logout hooks genuinely need to discard whatever the active
 adapter stored without knowing what that is. It resolves rather than rejecting
@@ -97,22 +158,85 @@ even on the unimplemented provider: it runs on paths where the caller has
 already decided to be signed out, and throwing there would strand the app
 holding a credential it has chosen to discard.
 
-## Implementing the Supabase adapter
+### How hydration stays provider-agnostic
 
-The stubs in `src/adapters/supabase/auth.ts` each name the
-`@supabase/supabase-js` v2 call that replaces them. Two things to get right:
+`hasSession()` is on the port for this reason. `stores/auth.ts` used to call
+`getSessionId()` directly — the REST provider's opaque id — so under Supabase it
+always answered `null` and the app hydrated as signed-out on every launch
+despite a valid stored token: silent, and looking like a Supabase bug rather
+than a layering one.
 
-1. **Store the token pair in SecureStore**, never AsyncStorage — same reasoning
-   as the REST session id (see [authentication.md](authentication.md)).
-2. **Map Supabase's user onto this app's `User`.** Supabase keeps the profile in
-   `user_metadata` and has no `role` or `mustChangePassword` — expect a
-   `profiles` table read. This is a translation, not a cast, and it belongs in
-   the adapter so `@/types/auth` stays the single domain shape.
+The store now asks the active provider. `hasSession()` reports that a credential
+is _present_, never that it is valid — only the server can say that, which
+`me()` does on mount.
 
-Also note `resetPassword`: Supabase recovery is session-based rather than
-token-in-body, so the emailed link must establish a session before
-`updateUser({ password })` will work. The port's `ResetPasswordRequest` carries
-a token, so the adapter has to bridge that difference.
+## The Supabase provider
+
+Implemented against `@supabase/supabase-js` v2. To use it, set the three
+variables and restart:
+
+```bash
+EXPO_PUBLIC_API_PROVIDER="supabase"
+EXPO_PUBLIC_SUPABASE_URL="https://<project>.supabase.co"
+EXPO_PUBLIC_SUPABASE_ANON_KEY="<anon key>"
+```
+
+### The client is lazy, and must stay that way
+
+`container.ts` imports **every** provider to build its registry, so anything a
+provider does at module load runs on every launch regardless of which one is
+selected. `createClient` throws when the URL is missing, so building it eagerly
+crashed the app at startup for the default configuration — REST backend, no
+Supabase credentials. `getSupabaseClient()` defers construction and reports
+which variables are missing if something actually calls it.
+
+Keep new providers side-effect-free at import for the same reason;
+`__specs__/container.spec.ts` guards this.
+
+### Tokens live in a chunked SecureStore
+
+Supabase defaults to AsyncStorage — unencrypted files, readable on a rooted
+device — but the refresh token is a long-lived credential, so the client is
+pointed at SecureStore instead (same reasoning as the REST session id, see
+[authentication.md](authentication.md)).
+
+SecureStore rejects values over 2048 bytes and a session carrying custom claims
+can exceed that. The failure mode is nasty: the write throws, the session is
+never persisted, and the user appears to be logged out at random much later. So
+values are split across numbered keys (`sb-session.0`, `.1`, …) with a count
+header under the base key. That header is what lets a read know how many parts
+to reassemble, and what lets a shrinking value clean up its surplus chunks —
+without it, a later read would splice the tail of an old session onto a new one.
+
+A missing chunk or an unparseable header reads as **no value**, never as a
+truncated session: re-authenticating is recoverable, handing the SDK half a
+credential is not.
+
+### Behavioral differences that are normalized away
+
+The adapter's job is to make Supabase behave like the contract, not to expose
+its quirks. Each of these is pinned by a test:
+
+| Concern          | What Supabase does                                   | What the adapter does                                                              |
+| ---------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `register`       | Returns a live session when confirmation is disabled | Discards it — the port promises registration does **not** sign the user in         |
+| `resetPassword`  | Recovery is session-based, not token-in-body         | Exchanges `token_hash` via `verifyOtp` first, then updates, then drops the session |
+| `changePassword` | Does not verify the current password                 | Re-authenticates with `signInWithPassword` before updating                         |
+| `me`             | `getSession()` returns the local cache               | Uses `getUser()`, which revalidates server-side                                    |
+| Errors           | Rejects with a flat `AuthError.status`               | Reshaped to the axios-like `error.response.status` screens already read            |
+| `verifyEmail`    | Wants `token_hash`, not the raw token                | Maps the port's `token` onto `token_hash`                                          |
+| `logoutAll`      | `signOut({ scope: 'global' })`                       | Bound to the port's `logoutAll`                                                    |
+
+Deep links are handled in `src/app/auth/[...slug].tsx`, which accepts **both**
+`token` (REST) and `token_hash` (Supabase) and normalizes to `token` — reading
+only the former silently dropped every Supabase link onto an error state.
+
+### Before production: `role` comes from metadata
+
+`mappers.ts` reads `role` out of `user_metadata`, which is **client-writable**
+unless locked down. Unrecognized values fall back to `user` so a tampered value
+cannot widen access, but a real deployment should source the role from a
+`profiles` table or a custom JWT claim and tighten the metadata policy.
 
 ## Adding a domain
 
@@ -128,6 +252,53 @@ registered adapter, so the new domain is covered for all providers at once. Add
 its method names to that spec's method list: the list is written out literally
 rather than derived from the type, because types vanish at runtime and a
 `keyof` loop would only ever check the keys an adapter already has.
+
+## Deliberately not ported
+
+The pattern earns its place where there is a real second implementation or a
+security invariant to hold at a boundary. Elsewhere it is ceremony:
+
+| Thing                             | Port it?                    | Why                                                                                                                                                                                                                                                             |
+| --------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zustand stores                    | **No**                      | State lives _inside_ the app, not across a boundary — there is no outward dependency to invert. Swapping to Redux rewrites every selector anyway, and an interface thin enough to hide both erases the ergonomics. Already trivially testable via `setState()`. |
+| `expo-router`, i18n, Reanimated   | **No**                      | No second implementation, and none coming.                                                                                                                                                                                                                      |
+| SecureStore / AsyncStorage / MMKV | **Eventually, as one port** | See below.                                                                                                                                                                                                                                                      |
+
+### A `StoragePort`, when a second provider needs it
+
+`secure-store.ts` currently exposes `getSessionId`/`setSessionId`/`getCsrfToken`
+— an API shaped around the REST provider's credential model. A Supabase adapter
+storing an access/refresh pair must either abuse `setSessionId` to hold
+something that is not a session id, or reach for `expo-secure-store` directly
+and duplicate the keychain options.
+
+The fix is **one port with two named instances**, split by security guarantee
+rather than by library:
+
+```ts
+type StoragePort = {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+};
+
+// secureStorage → expo-secure-store (Keychain / Keystore)
+// deviceStorage → AsyncStorage today, MMKV later
+```
+
+Secure-vs-not is the split that matters, because it is a security invariant that
+must survive any swap; _which library backs the non-secure half_ is the detail,
+and it is exactly the axis MMKV moves along. The port being `Promise`-returning
+is what absorbs MMKV's synchronous API instead of letting it ripple into callers.
+
+Note this is a **sharing** problem, not a swapping one — the value is letting
+both auth providers store credentials without inventing their own key handling,
+not swapping the keychain library. So it needs one interface, not a provider
+registry.
+
+**Do this when implementing Supabase or adopting MMKV, not before.** Today
+`secure-store.ts` has one consumer and works; the second credential model is
+what will reveal the right shape.
 
 ## Planned: a billing port
 

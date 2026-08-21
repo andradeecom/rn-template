@@ -31,6 +31,7 @@ const AUTH_METHODS: (keyof AuthPort)[] = [
   'me',
   'logout',
   'logoutAll',
+  'hasSession',
   'clearSession',
 ];
 

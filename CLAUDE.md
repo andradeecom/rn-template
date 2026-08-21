@@ -53,7 +53,11 @@ Screens (`src/app/**`) compose organisms/atoms directly; they hold screen logic 
 
 `src/adapters/` is the seam that makes the backend provider replaceable. `ports.ts` defines `AuthPort` — the contract every provider satisfies — written purely in terms of `@/types/auth`, so no axios response, Supabase `Session`, or provider error class reaches a caller.
 
-Two providers ship: `api/` (the proprietary REST backend, the default, a thin binding over `src/services/auth.ts`) and `supabase/` (**stub only** — every method rejects with `ProviderNotImplementedError`, annotated with the `@supabase/supabase-js` v2 call that replaces it; the SDK is deliberately not a dependency).
+Two providers ship, both fully implemented: `api/` (the proprietary REST backend, the default, a thin binding over `src/services/auth.ts`) and `supabase/` (`@supabase/supabase-js` v2, with its own `client.ts` and `mappers.ts`).
+
+The Supabase client is built **lazily** via `getSupabaseClient()`. `container.ts` imports every provider to build its registry, so constructing it at module load would crash the app on launch for anyone using the REST backend without Supabase credentials set — the default configuration. Keep any new provider's module-level work side-effect-free for the same reason.
+
+Supabase persists its JWT pair through a **chunked SecureStore adapter** (`supabase/client.ts`), not AsyncStorage: SecureStore rejects values over 2048 bytes and a session with custom claims can exceed that, so values are split across numbered keys with a count header. Chunk-management bugs here surface as random logouts much later, so `__specs__/supabase-storage.spec.ts` pins the round-trip, shrink, and torn-write cases.
 
 `container.ts` resolves the active provider from `EXPO_PUBLIC_API_PROVIDER` (`api` | `supabase`, defaulting to `api`). An unrecognized value warns and falls back rather than throwing, because `EXPO_PUBLIC_*` is inlined at build time and a typo would otherwise be an unrecoverable launch crash on-device.
 
@@ -64,6 +68,8 @@ The credential is deliberately **not** on the contract. `login` resolves to `{ u
 Adding a domain (`profile`, `billing`, …) means a new port type plus a sibling key on `BackendAdapter`, implemented by every provider. `src/adapters/__specs__/ports.spec.ts` is a contract test that runs one suite against every registered adapter — add the provider to its array and it inherits the whole suite.
 
 **Billing is the planned next port** and is sketched in full at the bottom of [docs/backend-adapters.md](docs/backend-adapters.md) — including why it should get its own `EXPO_PUBLIC_BILLING_PROVIDER` rather than being folded into `ProviderName` (payments vary independently of the backend), why `getSubscription` must return server-verified entitlement rather than what the store SDK reports, and why a native adapter is usually a store SDK (RevenueCat, Expo IAP) rather than Stripe.
+
+**Do not port Zustand stores, expo-router, i18n, or Reanimated** — no second implementation exists and state lives inside the app rather than across a boundary. The one storage abstraction worth adding later is a single `StoragePort` split secure-vs-device (absorbing MMKV), and only when a second credential model actually needs it; see docs/backend-adapters.md.
 
 **Vocabulary**: these are ports in the Hexagonal sense (driven ports), which is the same construct Clean Architecture calls an output port and implements as gateways/repositories. The template deliberately stops there — no entities, no use-case interactors, since React Query hooks fill the use-case role and wrapping them would mean reimplementing caching/retry/invalidation to satisfy a layering rule. Don't add an interactor layer on top of the hooks; if one domain ever grows orchestration worth testing without React, introduce it for that domain alone.
 

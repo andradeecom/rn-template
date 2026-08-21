@@ -1,4 +1,5 @@
 import { clearLocalSession } from '@/lib/api-client';
+import { getSessionId } from '@/lib/secure-store';
 import { authApi } from '@/services/auth';
 import type { AuthPort } from '@/adapters/ports';
 
@@ -27,6 +28,13 @@ export const apiAuthAdapter: AuthPort = {
   me: authApi.me,
   logout: authApi.logout,
   logoutAll: authApi.logoutAll,
+
+  /**
+   * A keystored session id is the whole credential for this provider, so its
+   * presence is the answer. Not proof the session is live — the id is opaque,
+   * so only the server can confirm it, which `me()` does on mount.
+   */
+  hasSession: async () => (await getSessionId()) !== null,
 
   /**
    * Clears the keystored session id, the CSRF token, the stored profile and the

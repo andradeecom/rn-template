@@ -6,4 +6,6 @@ export const supabaseAdapter: BackendAdapter = {
   auth: supabaseAuthAdapter,
 };
 
-export { ProviderNotImplementedError, supabaseAuthAdapter } from './auth';
+export { supabaseAuthAdapter } from './auth';
+export { getSupabaseClient, resetSupabaseClient, secureStorage } from './client';
+export { toAuthError, toUser } from './mappers';

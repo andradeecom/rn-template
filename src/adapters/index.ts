@@ -8,4 +8,4 @@ export {
 } from './container';
 export type { AuthPort, BackendAdapter, ProviderName } from './ports';
 export { apiAdapter } from './api';
-export { ProviderNotImplementedError, supabaseAdapter } from './supabase';
+export { supabaseAdapter } from './supabase';

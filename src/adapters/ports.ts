@@ -87,6 +87,20 @@ export type AuthPort = {
   logoutAll: () => Promise<MessageResponse>;
 
   /**
+   * Whether this device holds a credential worth trying.
+   *
+   * Hydration-only, and deliberately not proof of anything: it reports that a
+   * credential is *present*, not that the server still honors it. Only the
+   * server can confirm that, which `me()` does on mount.
+   *
+   * This exists because "is there a session?" is otherwise unanswerable without
+   * naming a credential model. Asking `getSessionId()` directly — as the auth
+   * store used to — bakes in the REST provider's opaque id and silently
+   * hydrates as signed-out under any provider that stores something else.
+   */
+  hasSession: () => Promise<boolean>;
+
+  /**
    * Drops this device's credential without calling the server.
    *
    * The api client's 401 handler and the logout hooks both need to clear

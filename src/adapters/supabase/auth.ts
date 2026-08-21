@@ -1,96 +1,210 @@
+import type { AuthError } from '@supabase/supabase-js';
 import type { AuthPort } from '@/adapters/ports';
+import type { MessageResponse, User } from '@/types/auth';
+import { getSupabaseClient } from './client';
+import { toAuthError, toUser } from './mappers';
 
 /**
- * Raised by every method on the Supabase adapter until it is implemented.
+ * Supabase provider.
  *
- * A named error rather than a bare `throw`: selecting an unimplemented provider
- * is a configuration mistake, and it should read as one at the call site
- * instead of surfacing as a generic failure inside a React Query mutation.
- */
-export class ProviderNotImplementedError extends Error {
-  constructor(method: string) {
-    super(
-      `The Supabase adapter does not implement "${method}" yet. ` +
-        `Set EXPO_PUBLIC_API_PROVIDER="api" to use the REST backend, or implement this method.`
-    );
-    this.name = 'ProviderNotImplementedError';
-  }
-}
-
-const notImplemented = (method: string) => () => Promise.reject(new ProviderNotImplementedError(method));
-
-/**
- * Supabase provider — contract shape only, no live calls.
- *
- * Its purpose today is to prove the port is satisfiable by something other than
- * the REST backend, and to fix the mapping before anyone writes the code. Each
- * stub is annotated with the `@supabase/supabase-js` v2 call that replaces it.
- *
- * Two differences to respect when implementing, because they are where a
- * careless port breaks:
+ * Two structural differences from the REST backend shape everything here:
  *
  * 1. **The credential is a JWT pair, not an opaque id.** `signInWithPassword`
- *    returns `{ session }` in the response body, with an access token that
- *    expires and a refresh token that renews it. That pair belongs in
- *    SecureStore — the same keystore the REST session id uses, never
- *    AsyncStorage — and stays inside this adapter. The port returns `{ user }`
- *    only, so nothing above this layer learns which credential model is live.
+ *    returns a session in the response body, and the SDK persists and refreshes
+ *    it. That is kept inside this adapter — `client.ts` points the SDK at
+ *    SecureStore — so the port can keep returning `{ user }` and nothing above
+ *    it learns which credential model is live.
  *
- * 2. **`User` is this app's type, not Supabase's.** A Supabase user carries its
- *    profile in `user_metadata` and has no `role` or `mustChangePassword`
- *    column. Mapping is a real translation — likely a `profiles` table read —
- *    not a cast. Do it here so `@/types/auth` stays the single domain shape.
+ * 2. **Supabase has no profile columns.** `role`, `mustChangePassword`, and the
+ *    name fields live in `user_metadata`, so every method maps through
+ *    `toUser()` rather than casting.
  */
+
+/**
+ * Collapses Supabase's `{ data, error }` into a throw.
+ *
+ * Typed as a discriminated union rather than two independent fields, because
+ * that is what the SDK actually returns: on the error branch every payload
+ * field is `null`. Narrowing on `error` is what lets the caller treat `data` as
+ * populated afterwards.
+ */
+function unwrap<T>(result: { data: T; error: null } | { data: unknown; error: AuthError }): T {
+  if (result.error) throw toAuthError(result.error);
+  return result.data as T;
+}
+
+const ok = (message: string): MessageResponse => ({ message });
+
+/**
+ * Supabase can return a null user on success — a signup awaiting email
+ * confirmation, or a session read after expiry. Callers of the port are typed
+ * against a non-null `User`, so the ambiguity is resolved here rather than
+ * leaking outward as an optional.
+ */
+function requireUser(user: { id: string } | null, context: string): User {
+  if (!user) throw new Error(`Supabase returned no user for ${context}`);
+  return toUser(user as Parameters<typeof toUser>[0]);
+}
+
 export const supabaseAuthAdapter: AuthPort = {
-  /** `auth.signInWithPassword({ email, password })` — persist `data.session`, return the mapped user. */
-  login: notImplemented('login'),
-
-  /** `auth.signUp({ email, password, options: { data: { firstName, lastName } } })`. */
-  register: notImplemented('register'),
-
-  /** `auth.resetPasswordForEmail(email, { redirectTo })` — redirectTo must be the app's deep link. */
-  forgotPassword: notImplemented('forgotPassword'),
+  login: async ({ email, password }) => {
+    const data = unwrap(await getSupabaseClient().auth.signInWithPassword({ email, password }));
+    return { user: requireUser(data.user, 'login') };
+  },
 
   /**
-   * `auth.updateUser({ password })`, but only after the recovery link's token has
-   * established a session — Supabase resets are session-based, not token-in-body,
-   * so the emailed link has to be exchanged first.
-   */
-  resetPassword: notImplemented('resetPassword'),
-
-  /**
-   * `auth.updateUser({ password })` while signed in. Supabase does not verify the
-   * current password, so honoring `currentPassword` means re-authenticating with
-   * `signInWithPassword` first.
-   */
-  changePassword: notImplemented('changePassword'),
-
-  /** `auth.verifyOtp({ token_hash, type: 'email' })`. */
-  verifyEmail: notImplemented('verifyEmail'),
-
-  /** `auth.resend({ type: 'signup', email })`. */
-  resendVerification: notImplemented('resendVerification'),
-
-  /** `auth.signInWithIdToken({ provider: 'google', token: idToken })`. */
-  googleLogin: notImplemented('googleLogin'),
-
-  /** `auth.getUser()`, then map onto this app's `User` — see the note above. */
-  me: notImplemented('me'),
-
-  /** `auth.signOut()` — defaults to the local scope. */
-  logout: notImplemented('logout'),
-
-  /** `auth.signOut({ scope: 'global' })`, which revokes every refresh token. */
-  logoutAll: notImplemented('logoutAll'),
-
-  /**
-   * Drops the stored token pair without calling Supabase.
+   * Registration deliberately does not sign the user in.
    *
-   * Unlike the others this one resolves rather than throwing. It runs on the
-   * failure paths — a rejected credential, a logout whose network call did not
-   * land — where the caller's whole intent is to end up signed out locally. A
-   * throw there would leave the app stuck holding a credential it has already
-   * decided to discard.
+   * With email confirmation disabled Supabase returns a live session here, which
+   * would silently diverge from the REST provider's contract — the app expects
+   * the user to log in afterwards. The session is discarded so both providers
+   * behave identically.
    */
-  clearSession: async () => {},
+  register: async ({ email, password, firstName, lastName }) => {
+    const data = unwrap(
+      await getSupabaseClient().auth.signUp({
+        email,
+        password,
+        options: { data: { firstName, lastName } },
+      })
+    );
+
+    if (data.session) await getSupabaseClient().auth.signOut({ scope: 'local' });
+
+    const user = requireUser(data.user, 'register');
+
+    return {
+      message: 'Registration successful. Check your email to confirm your account.',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        emailVerifiedAt: user.emailVerifiedAt,
+      },
+    };
+  },
+
+  forgotPassword: async ({ email }) => {
+    const { error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.EXPO_PUBLIC_APP_SCHEME ?? 'rntemplate'}://reset-password`,
+    });
+    if (error) throw toAuthError(error);
+
+    // Deliberately unconditional, mirroring the REST backend: confirming
+    // whether an address is registered would make this an account-enumeration
+    // oracle.
+    return ok('If that email is registered, a reset link is on its way.');
+  },
+
+  /**
+   * Supabase password recovery is **session-based**, not token-in-body: the
+   * emailed link carries a `token_hash` that must first be exchanged for a
+   * session, after which the password is changed on the signed-in user. The
+   * port's request carries a token, so the exchange happens here.
+   *
+   * The temporary recovery session is dropped afterwards, since the port
+   * promises a reset does not sign the user in.
+   */
+  resetPassword: async ({ token, newPassword }) => {
+    unwrap(await getSupabaseClient().auth.verifyOtp({ token_hash: token, type: 'recovery' }));
+
+    const { error } = await getSupabaseClient().auth.updateUser({ password: newPassword });
+    if (error) throw toAuthError(error);
+
+    await getSupabaseClient().auth.signOut({ scope: 'local' });
+
+    return ok('Your password has been reset. Please log in.');
+  },
+
+  /**
+   * Supabase does not verify the current password on `updateUser`, so it is
+   * re-checked explicitly by re-authenticating. Skipping that would let anyone
+   * with a live session — a borrowed unlocked phone — change the password
+   * without knowing the old one, which the REST backend does not allow.
+   */
+  changePassword: async ({ currentPassword, newPassword }) => {
+    if (currentPassword) {
+      const { data: current } = await getSupabaseClient().auth.getUser();
+      const email = current.user?.email;
+      if (!email) throw new Error('Not signed in');
+
+      unwrap(await getSupabaseClient().auth.signInWithPassword({ email, password: currentPassword }));
+    }
+
+    const { error } = await getSupabaseClient().auth.updateUser({
+      password: newPassword,
+      data: { mustChangePassword: false },
+    });
+    if (error) throw toAuthError(error);
+
+    return ok('Your password has been changed.');
+  },
+
+  /** The emailed link carries a `token_hash`, not the raw token. */
+  verifyEmail: async ({ token }) => {
+    unwrap(await getSupabaseClient().auth.verifyOtp({ token_hash: token, type: 'email' }));
+    return ok('Your email has been verified.');
+  },
+
+  resendVerification: async ({ email }) => {
+    const { error } = await getSupabaseClient().auth.resend({ type: 'signup', email });
+    if (error) throw toAuthError(error);
+
+    return ok('If that email is registered, a new confirmation link is on its way.');
+  },
+
+  googleLogin: async ({ idToken }) => {
+    const data = unwrap(await getSupabaseClient().auth.signInWithIdToken({ provider: 'google', token: idToken }));
+    return { user: requireUser(data.user, 'googleLogin') };
+  },
+
+  /**
+   * `getUser()` rather than `getSession()`: the former revalidates against the
+   * server, while the latter returns whatever is cached locally and would
+   * happily report a revoked session as live.
+   */
+  me: async () => {
+    const data = unwrap(await getSupabaseClient().auth.getUser());
+    return requireUser(data.user, 'me');
+  },
+
+  logout: async () => {
+    const { error } = await getSupabaseClient().auth.signOut({ scope: 'local' });
+    if (error) throw toAuthError(error);
+
+    return ok('Signed out.');
+  },
+
+  /** Revokes every refresh token the account holds, not just this device's. */
+  logoutAll: async () => {
+    const { error } = await getSupabaseClient().auth.signOut({ scope: 'global' });
+    if (error) throw toAuthError(error);
+
+    return ok('Signed out on all devices.');
+  },
+
+  /**
+   * Present, not proven. `getSession()` reads the stored pair without a network
+   * call, which is what hydration needs — `me()` revalidates on mount.
+   */
+  hasSession: async () => {
+    const { data } = await getSupabaseClient().auth.getSession();
+    return data.session !== null;
+  },
+
+  /**
+   * Local-only clear, and deliberately never throws: it runs on the paths where
+   * the caller has already decided to be signed out — a rejected credential, a
+   * logout whose network call failed — and throwing there would strand the app
+   * holding a credential it has chosen to discard.
+   */
+  clearSession: async () => {
+    try {
+      await getSupabaseClient().auth.signOut({ scope: 'local' });
+    } catch {
+      // Already gone, or storage unavailable. Either way the intent is met.
+    }
+  },
 };
