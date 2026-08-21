@@ -54,6 +54,15 @@ declare module 'react-native-unistyles' {
 
 StyleSheet.configure({
   settings: {
+    /*
+     * Light is the default, and stays the default: `adaptiveThemes` is
+     * deliberately not set (Unistyles treats the two as mutually exclusive), so
+     * the app does not follow the device colour scheme.
+     *
+     * This is only the value used before hydration. `useThemeStore.hydrate()`
+     * applies a stored preference over it on launch, and `setTheme()` switches
+     * it at runtime — so dark mode works, it just is not automatic.
+     */
     initialTheme: 'light',
   },
   breakpoints,

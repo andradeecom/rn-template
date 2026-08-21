@@ -14,7 +14,7 @@ export default function ProfileScreen() {
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest';
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <ProfileCard
           name={fullName}

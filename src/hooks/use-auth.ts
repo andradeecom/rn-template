@@ -2,6 +2,7 @@ import { getAuthPort } from '@/adapters';
 import { setStoredUser } from '@/lib/user-storage';
 import { useAuthStore } from '@/stores/auth';
 import { useLocaleStore } from '@/stores/locale';
+import { useThemeStore } from '@/stores/theme';
 import type {
   ChangePasswordRequest,
   ForgotPasswordRequest,
@@ -35,15 +36,18 @@ export function useHydrate() {
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const hydrateLocale = useLocaleStore((s) => s.hydrate);
   const isLocaleHydrated = useLocaleStore((s) => s.isHydrated);
+  const hydrateTheme = useThemeStore((s) => s.hydrate);
+  const isThemeHydrated = useThemeStore((s) => s.isHydrated);
 
   useEffect(() => {
     hydrate();
     hydrateLocale();
-  }, [hydrate, hydrateLocale]);
+    hydrateTheme();
+  }, [hydrate, hydrateLocale, hydrateTheme]);
 
-  // The stored language has to be applied before the first screen renders, or
-  // it flashes the device language and then swaps.
-  return isHydrated && isLocaleHydrated;
+  // The stored language and theme have to be applied before the first screen
+  // renders, or it flashes the device language / light mode and then swaps.
+  return isHydrated && isLocaleHydrated && isThemeHydrated;
 }
 
 /**

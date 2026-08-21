@@ -10,7 +10,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <View style={styles.container}>
         <Text variant="h1">{t('home.greeting', { name: user?.firstName ?? 'Guest' })}</Text>
         <Text variant="bodySmall" color="mutedForeground">
