@@ -73,7 +73,7 @@ export default function LoginScreen() {
       <LoginFooter />
 
       <View style={styles.languageRow}>
-        <LanguageSwitcher value={locale} onChange={setLocale} />
+        <LanguageSwitcher value={locale} onChange={setLocale} hasLabel={false} />
       </View>
     </AuthScreenLayout>
   );

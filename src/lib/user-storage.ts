@@ -1,10 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deviceStorage } from './storage';
 import type { User } from '@/types/auth';
 
+/**
+ * The cached profile — a name, an email, a role — not a credential, so it goes
+ * to device storage rather than the keystore. `secure-store.ts` holds the
+ * session id that actually authenticates the user.
+ */
 const USER_KEY = 'user_data';
 
 export async function getStoredUser(): Promise<User | null> {
-  const raw = await AsyncStorage.getItem(USER_KEY);
+  const raw = await deviceStorage.get(USER_KEY);
   if (!raw) return null;
 
   try {
@@ -15,9 +20,9 @@ export async function getStoredUser(): Promise<User | null> {
 }
 
 export async function setStoredUser(user: User): Promise<void> {
-  await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+  await deviceStorage.set(USER_KEY, JSON.stringify(user));
 }
 
 export async function removeStoredUser(): Promise<void> {
-  await AsyncStorage.removeItem(USER_KEY);
+  await deviceStorage.remove(USER_KEY);
 }

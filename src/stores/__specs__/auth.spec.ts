@@ -1,13 +1,18 @@
 import { useAuthStore } from '@/stores/auth';
-import { getSessionId } from '@/lib/secure-store';
+import { getAuthPort } from '@/adapters';
 import { getStoredUser } from '@/lib/user-storage';
 import type { User } from '@/types/auth';
 
-jest.mock('@/lib/secure-store', () => ({ getSessionId: jest.fn() }));
 jest.mock('@/lib/user-storage', () => ({ getStoredUser: jest.fn() }));
+jest.mock('@/adapters', () => ({ getAuthPort: jest.fn() }));
 
-const mockedSessionId = getSessionId as jest.MockedFunction<typeof getSessionId>;
 const mockedUser = getStoredUser as jest.MockedFunction<typeof getStoredUser>;
+const hasSession = jest.fn();
+
+(getAuthPort as jest.Mock).mockReturnValue({ hasSession });
+
+/** Mirrors the old `getSessionId` double, now expressed through the port. */
+const mockedSessionId = { mockResolvedValue: (v: string | null) => hasSession.mockResolvedValue(v !== null) };
 
 const user = { id: 'u1', email: 'a@b.com', firstName: 'A', lastName: 'B' } as User;
 
@@ -81,5 +86,43 @@ describe('useAuthStore transitions', () => {
 
     expect(useAuthStore.getState().user).toBeNull();
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+});
+
+/**
+ * Hydration must ask the *active provider* whether a credential exists, never
+ * read one provider's storage directly.
+ *
+ * This regressed once already: the store called `getSessionId()` from
+ * `secure-store`, which is the REST provider's opaque id. Under any provider
+ * that stores something else — Supabase's JWT pair — that returns null and the
+ * app hydrates as signed-out on every launch despite a valid session, looking
+ * like a provider bug rather than a layering one.
+ */
+describe('useAuthStore.hydrate provider independence', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getAuthPort as jest.Mock).mockReturnValue({ hasSession });
+    useAuthStore.setState({ user: null, isAuthenticated: false, isHydrated: false });
+  });
+
+  it('asks the port rather than reading a session id directly', async () => {
+    hasSession.mockResolvedValue(true);
+    mockedUser.mockResolvedValue(user);
+
+    await useAuthStore.getState().hydrate();
+
+    expect(hasSession).toHaveBeenCalled();
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+
+  it('restores a session for a provider that stores no session id', async () => {
+    // A Supabase-shaped provider: no opaque id anywhere, but a live credential.
+    hasSession.mockResolvedValue(true);
+    mockedUser.mockResolvedValue(user);
+
+    await useAuthStore.getState().hydrate();
+
+    expect(useAuthStore.getState()).toMatchObject({ user, isAuthenticated: true, isHydrated: true });
   });
 });

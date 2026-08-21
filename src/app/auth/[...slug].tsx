@@ -7,11 +7,18 @@ import { Redirect, useGlobalSearchParams, useLocalSearchParams } from 'expo-rout
  *
  * Keeping this shim means the backend's `FRONTEND_URL` can stay shared with the
  * web client instead of needing a mobile-specific path scheme.
+ *
+ * Providers disagree on the parameter name: the REST backend sends `token`,
+ * while Supabase sends `token_hash` (plus a `type`). Both are accepted and
+ * normalized to `token`, because the screens below are provider-agnostic — the
+ * active adapter is what knows how to redeem the value. Reading only `token`
+ * would silently drop every Supabase link onto an error state.
  */
 export default function AuthLinkRedirect() {
   const { slug } = useLocalSearchParams<{ slug?: string | string[] }>();
   // Query params (`?token=...`) live on the global params, not the route params.
-  const { token } = useGlobalSearchParams<{ token?: string }>();
+  const { token, token_hash: tokenHash } = useGlobalSearchParams<{ token?: string; token_hash?: string }>();
+  const credential = token ?? tokenHash;
 
   const segments = Array.isArray(slug) ? slug : slug ? [slug] : [];
   const target = segments.join('/');
@@ -23,5 +30,7 @@ export default function AuthLinkRedirect() {
     return <Redirect href="/login" />;
   }
 
-  return <Redirect href={{ pathname: `/${target}` as '/verify-email', params: token ? { token } : {} }} />;
+  return (
+    <Redirect href={{ pathname: `/${target}` as '/verify-email', params: credential ? { token: credential } : {} }} />
+  );
 }
