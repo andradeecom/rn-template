@@ -7,5 +7,5 @@ export const supabaseAdapter: BackendAdapter = {
 };
 
 export { supabaseAuthAdapter } from './auth';
-export { getSupabaseClient, resetSupabaseClient, secureStorage } from './client';
+export { getSupabaseClient, resetSupabaseClient } from './client';
 export { toAuthError, toUser } from './mappers';

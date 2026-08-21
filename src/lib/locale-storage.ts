@@ -1,20 +1,20 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import { SUPPORTED_LOCALES, isSupportedLocale, type SupportedLocale } from '@/i18n';
+import { deviceStorage } from './storage';
 
 const LOCALE_KEY = 'app_locale';
 
 /**
- * A language preference is not a credential, so AsyncStorage is the right
- * store — unlike the session id, which belongs in the keystore.
+ * A language preference is not a credential, so device storage is the right
+ * home — unlike the session id, which belongs in the keystore.
  */
 export async function getStoredLocale(): Promise<SupportedLocale | null> {
-  const raw = await AsyncStorage.getItem(LOCALE_KEY);
+  const raw = await deviceStorage.get(LOCALE_KEY);
   return raw && isSupportedLocale(raw) ? raw : null;
 }
 
 export async function setStoredLocale(locale: SupportedLocale): Promise<void> {
-  await AsyncStorage.setItem(LOCALE_KEY, locale);
+  await deviceStorage.set(LOCALE_KEY, locale);
 }
 
 /**

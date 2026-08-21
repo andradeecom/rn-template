@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import {
   getSessionId,
@@ -17,6 +18,11 @@ import {
  * unencrypted files, readable on a rooted device or out of an unencrypted
  * backup. These specs exist so a future refactor cannot quietly move the
  * credential to the wrong store or loosen its accessibility class.
+ *
+ * The reads and writes go through `@/lib/storage`'s `secureStorage`, which
+ * chunks values across numbered keys — so the assertions below match the base
+ * key by prefix rather than pinning an exact call, and the point being held is
+ * *which store* is touched, not how many calls it takes.
  */
 const mocked = SecureStore as jest.Mocked<typeof SecureStore>;
 
@@ -24,13 +30,17 @@ describe('session id storage', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('reads and writes through SecureStore, not AsyncStorage', async () => {
-    mocked.getItemAsync.mockResolvedValue('stored-id');
+    // One chunk: the header holds the count, `session_id.0` holds the value.
+    mocked.getItemAsync.mockImplementation(async (key) => (key === 'session_id' ? '1' : 'stored-id'));
 
     await expect(getSessionId()).resolves.toBe('stored-id');
     expect(mocked.getItemAsync).toHaveBeenCalledWith('session_id', expect.any(Object));
 
+    mocked.getItemAsync.mockResolvedValue(null);
     await setSessionId('new-id');
-    expect(mocked.setItemAsync).toHaveBeenCalledWith('session_id', 'new-id', expect.any(Object));
+
+    expect(mocked.setItemAsync).toHaveBeenCalledWith('session_id.0', 'new-id', expect.any(Object));
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   });
 
   /*
@@ -58,9 +68,12 @@ describe('session id storage', () => {
   });
 
   it('deletes the id rather than blanking it', async () => {
+    mocked.getItemAsync.mockResolvedValue('1');
+
     await removeSessionId();
 
     expect(mocked.deleteItemAsync).toHaveBeenCalledWith('session_id', expect.any(Object));
+    expect(mocked.deleteItemAsync).toHaveBeenCalledWith('session_id.0', expect.any(Object));
     expect(mocked.setItemAsync).not.toHaveBeenCalled();
   });
 });
@@ -71,14 +84,16 @@ describe('CSRF token storage', () => {
   // Not a credential — it only round-trips to the server — but it is kept in
   // the same store so the two are cleared together and cannot drift apart.
   it('lives beside the session id under its own key', async () => {
-    mocked.getItemAsync.mockResolvedValue('tok');
+    mocked.getItemAsync.mockImplementation(async (key) => (key === 'csrf_token' ? '1' : 'tok'));
 
     await expect(getCsrfToken()).resolves.toBe('tok');
     expect(mocked.getItemAsync).toHaveBeenCalledWith('csrf_token', expect.any(Object));
 
+    mocked.getItemAsync.mockResolvedValue(null);
     await setCsrfToken('tok2');
-    expect(mocked.setItemAsync).toHaveBeenCalledWith('csrf_token', 'tok2', expect.any(Object));
+    expect(mocked.setItemAsync).toHaveBeenCalledWith('csrf_token.0', 'tok2', expect.any(Object));
 
+    mocked.getItemAsync.mockResolvedValue('1');
     await removeCsrfToken();
     expect(mocked.deleteItemAsync).toHaveBeenCalledWith('csrf_token', expect.any(Object));
   });

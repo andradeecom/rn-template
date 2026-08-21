@@ -1,35 +1,30 @@
-import * as SecureStore from 'expo-secure-store';
+import { secureStorage } from './storage';
 
 /**
- * The session id lives in the OS keystore — Keychain on iOS, Keystore-backed
- * EncryptedSharedPreferences on Android — not in AsyncStorage.
+ * The REST provider's credentials, named.
  *
- * AsyncStorage is plain unencrypted files inside the app sandbox, readable on a
- * rooted/jailbroken device or out of an unencrypted device backup. SecureStore
- * is the mobile counterpart of an httpOnly cookie: the app can use the
- * credential without other processes being able to read it.
+ * A thin domain layer over `secureStorage` rather than a second storage API:
+ * the keychain options, chunking, and key layout all live in
+ * `@/lib/storage/secure.ts`, and this file only fixes which key holds what.
+ *
+ * These names are deliberately provider-specific — an opaque session id and a
+ * CSRF token are what the REST backend issues. Other providers store their own
+ * credentials under their own keys through the same port; nothing here is meant
+ * to be shared with them.
  */
 const SESSION_KEY = 'session_id';
 const CSRF_KEY = 'csrf_token';
 
-/**
- * Requires the device to have been unlocked at least once since boot, and the
- * value never syncs to iCloud or transfers to a new device.
- */
-const OPTIONS: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
-};
-
 export async function getSessionId(): Promise<string | null> {
-  return SecureStore.getItemAsync(SESSION_KEY, OPTIONS);
+  return secureStorage.get(SESSION_KEY);
 }
 
 export async function setSessionId(sessionId: string): Promise<void> {
-  await SecureStore.setItemAsync(SESSION_KEY, sessionId, OPTIONS);
+  await secureStorage.set(SESSION_KEY, sessionId);
 }
 
 export async function removeSessionId(): Promise<void> {
-  await SecureStore.deleteItemAsync(SESSION_KEY, OPTIONS);
+  await secureStorage.remove(SESSION_KEY);
 }
 
 /**
@@ -38,13 +33,13 @@ export async function removeSessionId(): Promise<void> {
  * together and never drift apart.
  */
 export async function getCsrfToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(CSRF_KEY, OPTIONS);
+  return secureStorage.get(CSRF_KEY);
 }
 
 export async function setCsrfToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(CSRF_KEY, token, OPTIONS);
+  await secureStorage.set(CSRF_KEY, token);
 }
 
 export async function removeCsrfToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(CSRF_KEY, OPTIONS);
+  await secureStorage.remove(CSRF_KEY);
 }
