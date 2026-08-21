@@ -264,41 +264,13 @@ security invariant to hold at a boundary. Elsewhere it is ceremony:
 | `expo-router`, i18n, Reanimated   | **No**                      | No second implementation, and none coming.                                                                                                                                                                                                                      |
 | SecureStore / AsyncStorage / MMKV | **Eventually, as one port** | See below.                                                                                                                                                                                                                                                      |
 
-### A `StoragePort`, when a second provider needs it
+### Storage is already ported
 
-`secure-store.ts` currently exposes `getSessionId`/`setSessionId`/`getCsrfToken`
-— an API shaped around the REST provider's credential model. A Supabase adapter
-storing an access/refresh pair must either abuse `setSessionId` to hold
-something that is not a session id, or reach for `expo-secure-store` directly
-and duplicate the keychain options.
-
-The fix is **one port with two named instances**, split by security guarantee
-rather than by library:
-
-```ts
-type StoragePort = {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<void>;
-  remove(key: string): Promise<void>;
-};
-
-// secureStorage → expo-secure-store (Keychain / Keystore)
-// deviceStorage → AsyncStorage today, MMKV later
-```
-
-Secure-vs-not is the split that matters, because it is a security invariant that
-must survive any swap; _which library backs the non-secure half_ is the detail,
-and it is exactly the axis MMKV moves along. The port being `Promise`-returning
-is what absorbs MMKV's synchronous API instead of letting it ripple into callers.
-
-Note this is a **sharing** problem, not a swapping one — the value is letting
-both auth providers store credentials without inventing their own key handling,
-not swapping the keychain library. So it needs one interface, not a provider
-registry.
-
-**Do this when implementing Supabase or adopting MMKV, not before.** Today
-`secure-store.ts` has one consumer and works; the second credential model is
-what will reveal the right shape.
+`src/lib/storage` holds one `StoragePort` with two instances, `secureStorage`
+and `deviceStorage`, split by security guarantee. Providers store their
+credentials through it rather than reaching for a storage library — the Supabase
+client hands the SDK a thin rename of the port and knows nothing about how a
+large token is split up. See [storage.md](storage.md).
 
 ## Planned: a billing port
 

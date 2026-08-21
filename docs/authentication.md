@@ -4,8 +4,9 @@ Auth is an **opaque server-side session**, not a JWT. The credential is a random
 id the server issues; it carries no claims and cannot be refreshed — when the
 server rejects it, the row is gone and the only correct move is to log in again.
 
-- **Storage**: the session id lives in SecureStore — Keychain on iOS,
-  Keystore-backed storage on Android — scoped
+- **Storage**: the session id lives in `secureStorage` (see
+  [storage.md](storage.md)) — Keychain on iOS, Keystore-backed storage on
+  Android — scoped
   `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`, so it never syncs to iCloud or
   transfers to a new device. **Not** AsyncStorage, which is unencrypted files
   readable on a rooted device or out of an unencrypted backup. AsyncStorage

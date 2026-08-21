@@ -69,6 +69,14 @@ Adding a domain (`profile`, `billing`, …) means a new port type plus a sibling
 
 **Billing is the planned next port** and is sketched in full at the bottom of [docs/backend-adapters.md](docs/backend-adapters.md) — including why it should get its own `EXPO_PUBLIC_BILLING_PROVIDER` rather than being folded into `ProviderName` (payments vary independently of the backend), why `getSubscription` must return server-verified entitlement rather than what the store SDK reports, and why a native adapter is usually a store SDK (RevenueCat, Expo IAP) rather than Stripe.
 
+### Storage
+
+All persistence goes through `src/lib/storage` — one `StoragePort` with two instances split by security guarantee: `secureStorage` (expo-secure-store: session ids, CSRF, OAuth token pairs) and `deviceStorage` (AsyncStorage: cached profile, locale, UI preferences). Never import `expo-secure-store` or `AsyncStorage` directly outside `src/lib/storage`; never route a credential to `deviceStorage`, which is unencrypted files readable on a rooted device. `__specs__/boundaries.spec.ts` enforces both.
+
+`secureStorage` chunks values across numbered keys because some iOS releases reject values over ~2048 bytes with a native throw — for a token write that surfaces as an unexplained logout much later. The cut is blind (fixed offset, never parsed or split on JWT separators), a torn read reports absence rather than a truncated value, and shrinking cleans up surplus parts. See [docs/storage.md](docs/storage.md).
+
+MMKV is a candidate for `deviceStorage` later, but is **not** a `secureStorage` replacement: its `encryptionKey` is a string you must persist yourself, which is what the keystore is for.
+
 **Do not port Zustand stores, expo-router, i18n, or Reanimated** — no second implementation exists and state lives inside the app rather than across a boundary. The one storage abstraction worth adding later is a single `StoragePort` split secure-vs-device (absorbing MMKV), and only when a second credential model actually needs it; see docs/backend-adapters.md.
 
 **Vocabulary**: these are ports in the Hexagonal sense (driven ports), which is the same construct Clean Architecture calls an output port and implements as gateways/repositories. The template deliberately stops there — no entities, no use-case interactors, since React Query hooks fill the use-case role and wrapping them would mean reimplementing caching/retry/invalidation to satisfy a layering rule. Don't add an interactor layer on top of the hooks; if one domain ever grows orchestration worth testing without React, introduce it for that domain alone.
